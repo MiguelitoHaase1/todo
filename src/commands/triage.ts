@@ -1,5 +1,5 @@
 import { sbSelect, sbUpdate, type Task } from "../supabase.ts";
-import { priorityLabel, shortId, formatDate } from "../format.ts";
+import { priorityLabel, formatDate } from "../format.ts";
 
 export interface TriageItem {
   index: number;
@@ -12,9 +12,10 @@ export interface TriageItem {
  * Returns items numbered 1..N for easy iMessage replies.
  */
 export async function buildTriageList(): Promise<TriageItem[]> {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const tomorrowStr = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
+  const staleStr = new Date(now.getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
 
   const allOpen = await sbSelect<Task>(
     "tasks",
@@ -22,50 +23,29 @@ export async function buildTriageList(): Promise<TriageItem[]> {
     "priority.asc,due_date.asc.nullslast",
   );
 
+  // Single pass — a task can match multiple categories, keep first match only
+  const seen = new Set<string>();
   const items: TriageItem[] = [];
 
-  // 1. Tasks due tomorrow
   for (const t of allOpen) {
-    if (t.due_date === tomorrowStr) {
-      items.push({ index: 0, task: t, reason: "due tomorrow" });
-    }
-  }
+    if (seen.has(t.id)) continue;
 
-  // 2. Overdue tasks (due before today)
-  const todayStr = new Date().toISOString().slice(0, 10);
-  for (const t of allOpen) {
+    let reason: string | null = null;
     if (t.due_date && t.due_date < todayStr) {
-      items.push({ index: 0, task: t, reason: "overdue" });
+      reason = "overdue";
+    } else if (t.due_date === tomorrowStr) {
+      reason = "due tomorrow";
+    } else if (t.priority >= 3 && !t.due_date && t.updated_at.slice(0, 10) < staleStr) {
+      reason = "stale, no date";
+    }
+
+    if (reason) {
+      seen.add(t.id);
+      items.push({ index: items.length + 1, task: t, reason });
     }
   }
 
-  // 3. Low-priority tasks (P3/P4) with no due date — stale candidates
-  const staleThreshold = new Date();
-  staleThreshold.setDate(staleThreshold.getDate() - 7);
-  const staleStr = staleThreshold.toISOString();
-
-  for (const t of allOpen) {
-    if (
-      t.priority >= 3 &&
-      !t.due_date &&
-      t.updated_at < staleStr
-    ) {
-      items.push({ index: 0, task: t, reason: "stale, no date" });
-    }
-  }
-
-  // Deduplicate by task ID
-  const seen = new Set<string>();
-  const unique: TriageItem[] = [];
-  for (const item of items) {
-    if (!seen.has(item.task.id)) {
-      seen.add(item.task.id);
-      unique.push(item);
-    }
-  }
-
-  // Number them 1..N
-  return unique.map((item, i) => ({ ...item, index: i + 1 }));
+  return items;
 }
 
 /**
@@ -142,39 +122,42 @@ export async function executeTriageActions(
   items: TriageItem[],
   actions: ParsedAction[],
 ): Promise<string> {
-  const results: string[] = [];
+  const itemMap = new Map(items.map((i) => [i.index, i]));
+  const nextWeekStr = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
 
+  // Collect all operations, then execute writes in parallel
+  const ops: { item: TriageItem; action: TriageAction }[] = [];
   for (const { action, indices } of actions) {
     for (const idx of indices) {
-      const item = items.find((i) => i.index === idx);
-      if (!item) continue;
-
-      switch (action) {
-        case "drop": {
-          await sbUpdate("tasks", `id=eq.${item.task.id}`, {
-            status: "done",
-          });
-          results.push(`Dropped: ${item.task.title}`);
-          break;
-        }
-        case "defer": {
-          const nextWeek = new Date();
-          nextWeek.setDate(nextWeek.getDate() + 7);
-          const nextWeekStr = nextWeek.toISOString().slice(0, 10);
-          await sbUpdate("tasks", `id=eq.${item.task.id}`, {
-            due_date: nextWeekStr,
-          });
-          results.push(`Deferred to ${nextWeekStr}: ${item.task.title}`);
-          break;
-        }
-        case "keep":
-          results.push(`Kept: ${item.task.title}`);
-          break;
-      }
+      const item = itemMap.get(idx);
+      if (item) ops.push({ item, action });
     }
   }
 
-  return results.length > 0 ? results.join("\n") : "No actions taken.";
+  if (ops.length === 0) return "No actions taken.";
+
+  await Promise.all(
+    ops
+      .filter((op) => op.action !== "keep")
+      .map((op) => {
+        switch (op.action) {
+          case "drop":
+            return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { status: "done" });
+          case "defer":
+            return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { due_date: nextWeekStr });
+        }
+      }),
+  );
+
+  return ops
+    .map((op) => {
+      switch (op.action) {
+        case "drop": return `Dropped: ${op.item.task.title}`;
+        case "defer": return `Deferred to ${nextWeekStr}: ${op.item.task.title}`;
+        case "keep": return `Kept: ${op.item.task.title}`;
+      }
+    })
+    .join("\n");
 }
 
 /**

@@ -1,6 +1,23 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseTriageReply, formatTriageMessage, buildTriageList, executeTriageActions } from "./triage.ts";
+import { parseTriageReply, formatTriageMessage, executeTriageActions } from "./triage.ts";
+import type { TriageItem } from "./triage.ts";
+import type { Task } from "../supabase.ts";
+
+function mockTask(overrides?: Partial<Task>): Task {
+  return {
+    id: "abc12345-0000-0000-0000-000000000000",
+    title: "Test task",
+    priority: 3,
+    status: "open",
+    due_date: null,
+    description: null,
+    todoist_id: null,
+    created_at: "2026-03-20T00:00:00Z",
+    updated_at: "2026-03-20T00:00:00Z",
+    ...overrides,
+  };
+}
 
 describe("parseTriageReply", () => {
   it("parses single action", () => {
@@ -58,22 +75,8 @@ describe("formatTriageMessage", () => {
   });
 
   it("formats items with numbers and reasons", () => {
-    const items = [
-      {
-        index: 1,
-        task: {
-          id: "abc12345-0000-0000-0000-000000000000",
-          title: "Test task",
-          priority: 2,
-          status: "open",
-          due_date: null,
-          description: null,
-          todoist_id: null,
-          created_at: "2026-03-20T00:00:00Z",
-          updated_at: "2026-03-20T00:00:00Z",
-        },
-        reason: "stale, no date",
-      },
+    const items: TriageItem[] = [
+      { index: 1, task: mockTask({ priority: 2 }), reason: "stale, no date" },
     ];
     const msg = formatTriageMessage(items);
     assert.ok(msg.includes("1 tasks to triage"));
@@ -91,22 +94,8 @@ describe("executeTriageActions", () => {
   });
 
   it("returns 'Kept' for keep actions without hitting Supabase", async () => {
-    const items = [
-      {
-        index: 1,
-        task: {
-          id: "abc12345-0000-0000-0000-000000000000",
-          title: "Keep me",
-          priority: 3,
-          status: "open",
-          due_date: null,
-          description: null,
-          todoist_id: null,
-          created_at: "2026-03-20T00:00:00Z",
-          updated_at: "2026-03-20T00:00:00Z",
-        },
-        reason: "stale",
-      },
+    const items: TriageItem[] = [
+      { index: 1, task: mockTask({ title: "Keep me" }), reason: "stale" },
     ];
     const actions = parseTriageReply("keep 1", 1);
     const result = await executeTriageActions(items, actions);
