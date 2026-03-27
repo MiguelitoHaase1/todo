@@ -15,6 +15,8 @@ import { cmdList } from "./commands/list.ts";
 import { cmdDone } from "./commands/done.ts";
 import { cmdShow } from "./commands/show.ts";
 import { cmdTriage } from "./commands/triage.ts";
+import { cmdLink } from "./commands/link.ts";
+import { cmdUnlink } from "./commands/unlink.ts";
 
 const USAGE = `td — headless brain task CLI
 
@@ -25,6 +27,8 @@ Commands:
   td show <id>                                   Show task details
   td triage                                      Surface tasks to triage
   td triage exec "drop 1, defer 2"               Execute a triage reply
+  td link <a> <b> [--type=related|parent]         Link two tasks
+  td unlink <a> <b>                               Remove a link
 
 Flags:
   --json    Machine-readable JSON output
@@ -58,6 +62,12 @@ async function main() {
       break;
     case "triage":
       await cmdTriage(rest);
+      break;
+    case "link":
+      await cmdLink(rest);
+      break;
+    case "unlink":
+      await cmdUnlink(rest);
       break;
     default:
       console.error(`Unknown command: ${command}\n`);
