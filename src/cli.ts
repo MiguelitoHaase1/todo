@@ -20,7 +20,7 @@ const USAGE = `td — headless brain task CLI
 
 Commands:
   td add "title" [-p 0-4] [--due YYYY-MM-DD]   Create a task
-  td list [--today] [--status open|done|all]     List tasks
+  td list [--today] [--due DATE] [--status ...]   List tasks
   td done <id>                                   Mark task complete
   td show <id>                                   Show task details
   td triage                                      Surface tasks to triage
