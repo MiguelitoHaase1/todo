@@ -14,8 +14,12 @@ export interface TriageItem {
 export async function buildTriageList(): Promise<TriageItem[]> {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
-  const tomorrowStr = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
-  const staleStr = new Date(now.getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const stale = new Date(now);
+  stale.setDate(stale.getDate() - 7);
+  const staleStr = stale.toISOString().slice(0, 10);
 
   const allOpen = await sbSelect<Task>(
     "tasks",
@@ -35,7 +39,7 @@ export async function buildTriageList(): Promise<TriageItem[]> {
       reason = "overdue";
     } else if (t.due_date === tomorrowStr) {
       reason = "due tomorrow";
-    } else if (t.priority >= 3 && !t.due_date && t.updated_at.slice(0, 10) < staleStr) {
+    } else if (t.priority >= 3 && !t.due_date && t.updated_at.slice(0, 10) <= staleStr) {
       reason = "stale, no date";
     }
 
@@ -86,26 +90,17 @@ export function parseTriageReply(
 ): ParsedAction[] {
   const actions: ParsedAction[] = [];
   const normalized = reply.toLowerCase().trim();
+  const allIndices = Array.from({ length: maxIndex }, (_, i) => i + 1);
 
-  // Handle "drop all" / "keep all" / "defer all"
-  const allMatch = normalized.match(/^(drop|defer|keep)\s+all$/);
-  if (allMatch) {
-    const action = allMatch[1] as TriageAction;
-    const allIndices = Array.from({ length: maxIndex }, (_, i) => i + 1);
-    return [{ action, indices: allIndices }];
-  }
-
-  // Split on comma or semicolon
   const parts = normalized.split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
 
   for (const part of parts) {
-    const match = part.match(/^(drop|defer|keep)\s+([\d\s]+)$/);
+    const match = part.match(/^(drop|defer|keep)\s+(all|[\d\s]+)$/);
     if (match) {
       const action = match[1] as TriageAction;
-      const indices = match[2]
-        .split(/\s+/)
-        .map(Number)
-        .filter((n) => n >= 1 && n <= maxIndex);
+      const indices = match[2] === "all"
+        ? allIndices
+        : match[2].split(/\s+/).map(Number).filter((n) => n >= 1 && n <= maxIndex);
       if (indices.length > 0) {
         actions.push({ action, indices });
       }
@@ -123,23 +118,29 @@ export async function executeTriageActions(
   actions: ParsedAction[],
 ): Promise<string> {
   const itemMap = new Map(items.map((i) => [i.index, i]));
-  const nextWeekStr = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextWeekStr = nextWeek.toISOString().slice(0, 10);
 
-  // Collect all operations, then execute writes in parallel
-  const ops: { item: TriageItem; action: TriageAction }[] = [];
+  // Dedup by task ID — last action wins when same index appears in multiple clauses
+  const opsByTaskId = new Map<string, { item: TriageItem; action: TriageAction }>();
   for (const { action, indices } of actions) {
     for (const idx of indices) {
       const item = itemMap.get(idx);
-      if (item) ops.push({ item, action });
+      if (item) opsByTaskId.set(item.task.id, { item, action });
     }
   }
+  const ops = [...opsByTaskId.values()];
 
   if (ops.length === 0) return "No actions taken.";
 
-  await Promise.all(
-    ops
-      .filter((op) => op.action !== "keep")
-      .map((op) => {
+  // Execute writes in parallel, track per-op success/failure
+  const writes = ops.filter((op) => op.action !== "keep");
+  const succeeded = new Set<string>();
+
+  if (writes.length > 0) {
+    const results = await Promise.allSettled(
+      writes.map((op) => {
         switch (op.action) {
           case "drop":
             return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { status: "done" });
@@ -147,17 +148,22 @@ export async function executeTriageActions(
             return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { due_date: nextWeekStr });
         }
       }),
-  );
+    );
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === "fulfilled") succeeded.add(writes[i].item.task.id);
+    }
+  }
 
-  return ops
-    .map((op) => {
-      switch (op.action) {
-        case "drop": return `Dropped: ${op.item.task.title}`;
-        case "defer": return `Deferred to ${nextWeekStr}: ${op.item.task.title}`;
-        case "keep": return `Kept: ${op.item.task.title}`;
-      }
-    })
-    .join("\n");
+  const lines = ops.map((op) => {
+    const ok = op.action === "keep" || succeeded.has(op.item.task.id);
+    switch (op.action) {
+      case "drop": return ok ? `Dropped: ${op.item.task.title}` : `FAILED to drop: ${op.item.task.title}`;
+      case "defer": return ok ? `Deferred to ${nextWeekStr}: ${op.item.task.title}` : `FAILED to defer: ${op.item.task.title}`;
+      case "keep": return `Kept: ${op.item.task.title}`;
+    }
+  });
+
+  return lines.join("\n");
 }
 
 /**

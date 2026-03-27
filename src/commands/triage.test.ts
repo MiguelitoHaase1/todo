@@ -66,6 +66,32 @@ describe("parseTriageReply", () => {
     const result = parseTriageReply("hello world", 5);
     assert.deepStrictEqual(result, []);
   });
+
+  it("parses 'defer all'", () => {
+    const result = parseTriageReply("defer all", 3);
+    assert.deepStrictEqual(result, [{ action: "defer", indices: [1, 2, 3] }]);
+  });
+
+  it("parses 'all' combined with numbered clauses", () => {
+    const result = parseTriageReply("drop all, keep 2", 3);
+    assert.deepStrictEqual(result, [
+      { action: "drop", indices: [1, 2, 3] },
+      { action: "keep", indices: [2] },
+    ]);
+  });
+
+  it("parses semicolon separators", () => {
+    const result = parseTriageReply("drop 1; defer 2", 5);
+    assert.deepStrictEqual(result, [
+      { action: "drop", indices: [1] },
+      { action: "defer", indices: [2] },
+    ]);
+  });
+
+  it("filters out zero index", () => {
+    const result = parseTriageReply("drop 0 1", 5);
+    assert.deepStrictEqual(result, [{ action: "drop", indices: [1] }]);
+  });
 });
 
 describe("formatTriageMessage", () => {
@@ -85,6 +111,18 @@ describe("formatTriageMessage", () => {
     assert.ok(msg.includes("stale, no date"));
     assert.ok(msg.includes("Reply: drop 1, defer 3, keep 2"));
   });
+
+  it("formats due date when present", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+    const items: TriageItem[] = [
+      { index: 1, task: mockTask({ due_date: tomorrowStr }), reason: "due tomorrow" },
+    ];
+    const msg = formatTriageMessage(items);
+    assert.ok(msg.includes("tomorrow"));
+    assert.ok(!msg.includes("no date"));
+  });
 });
 
 describe("executeTriageActions", () => {
@@ -100,5 +138,25 @@ describe("executeTriageActions", () => {
     const actions = parseTriageReply("keep 1", 1);
     const result = await executeTriageActions(items, actions);
     assert.equal(result, "Kept: Keep me");
+  });
+
+  it("handles mixed keep actions with correct multi-line summary", async () => {
+    const items: TriageItem[] = [
+      { index: 1, task: mockTask({ id: "aaa00000-0000-0000-0000-000000000000", title: "Task A" }), reason: "overdue" },
+      { index: 2, task: mockTask({ id: "bbb00000-0000-0000-0000-000000000000", title: "Task B" }), reason: "stale" },
+    ];
+    const actions = parseTriageReply("keep 1, keep 2", 2);
+    const result = await executeTriageActions(items, actions);
+    assert.equal(result, "Kept: Task A\nKept: Task B");
+  });
+
+  it("deduplicates when same index appears in multiple clauses (last wins)", async () => {
+    const items: TriageItem[] = [
+      { index: 1, task: mockTask({ title: "Contested" }), reason: "stale" },
+    ];
+    // "drop 1, keep 1" — last action (keep) should win
+    const actions = parseTriageReply("drop 1, keep 1", 1);
+    const result = await executeTriageActions(items, actions);
+    assert.equal(result, "Kept: Contested");
   });
 });
