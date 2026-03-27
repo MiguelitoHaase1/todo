@@ -1,0 +1,15 @@
+{
+  "projectName": "Todolist",
+  "projectSlug": "todolist",
+  "currentPhase": 5,
+  "completedPhases": [1, 2, 3, 4, 5],
+  "startedAt": "2026-03-25T00:00:00Z",
+  "lastUpdated": "2026-03-25T00:00:00Z",
+  "scope": { "defined": false, "outcome": null, "vision": null },
+  "tenets": { "facts": [], "assumptions": [], "beliefs": [], "principles": [] },
+  "chapters": {
+    "completed": [],
+    "current": null,
+    "remaining": ["problem-users", "user-experience", "appendix-decisions", "appendix-faq", "appendix-tenets"]
+  }
+}

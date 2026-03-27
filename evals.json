@@ -1,0 +1,170 @@
+{
+  "meta": {
+    "strategy_slug": "todolist",
+    "generated": "2026-03-26T00:00:00Z",
+    "version": "1.0.0"
+  },
+  "coverage": {
+    "total_now_jtbds": 5,
+    "jtbds_with_evals": 5,
+    "coverage_ratio": 1.0
+  },
+  "behavioral_evals": [
+    {
+      "id": "eval-001",
+      "jtbd": "Capture a task instantly",
+      "statement": "Michael captures 2+ tasks on each weekday via the td CLI or chat bridge",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 1.0,
+      "baseline": null,
+      "measurement": "weekdays_with_2plus_captures / 5",
+      "success_criteria": "Score of 1.0 for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "Tasks captured but land with no priority signal",
+          "expected_score": 0.3
+        },
+        {
+          "statement": "Every new task auto-ranks above existing priorities (recency bias overshoot)",
+          "expected_score": 0.2
+        }
+      ]
+    },
+    {
+      "id": "eval-002",
+      "jtbd": "See the full landscape",
+      "statement": "When the system proposes related tasks or reframings, Michael acts on the suggestions",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.6,
+      "baseline": null,
+      "measurement": "proposals_acted_on / proposals_shown",
+      "success_criteria": "Score of 0.6 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "System proposes links between unrelated tasks (over-eager matching creates noise)",
+          "expected_score": 0.2
+        }
+      ]
+    },
+    {
+      "id": "eval-003",
+      "jtbd": "Reflect and reshape in one flow",
+      "statement": "After completing evening recap, Michael completes tomorrow's plan in the same session on mobile",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.8,
+      "baseline": null,
+      "measurement": "evening_sessions_with_plan_completed / evening_sessions_with_recap",
+      "success_criteria": "Score of 0.8 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "Recap-to-plan works when attempted but process weight causes skipped days",
+          "expected_score": 0.3
+        }
+      ]
+    },
+    {
+      "id": "eval-004",
+      "jtbd": "Get AI-powered priority suggestions",
+      "statement": "Michael engages with AI priority challenges — reprioritizing tasks or explicitly confirming after devil's advocate pushback",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.3,
+      "baseline": null,
+      "measurement": "priority_reconsiderations_engaged / ai_priority_challenges_shown",
+      "success_criteria": "Score of 0.3 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "Priority challenges feel like interruptions, adding ceremony to quick decisions",
+          "expected_score": 0.2
+        }
+      ]
+    },
+    {
+      "id": "eval-005",
+      "jtbd": "See task relationships during planning",
+      "statement": "Planning sessions produce relationship-driven backlog churn — merges, deletes, and resurfaced tasks",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.8,
+      "baseline": null,
+      "measurement": "min(1, relationship_driven_actions / 3) per planning session",
+      "success_criteria": "Score of 0.8 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "System suggests merges/deletes based on weak connections, creating busywork",
+          "expected_score": 0.2
+        }
+      ]
+    }
+  ],
+  "leading_indicators": {
+    "primary": [
+      {
+        "id": "li-001",
+        "name": "Priority concentration trend",
+        "jtbd_link": "Get AI-powered priority suggestions",
+        "score_type": "continuous",
+        "target": 0.7,
+        "measurement": "this_week_p0p1_ratio >= last_week_p0p1_ratio (1 if improved or held, 0 if declined)",
+        "grader": "code",
+        "frequency": "weekly"
+      },
+      {
+        "id": "li-002",
+        "name": "Recap momentum tone",
+        "jtbd_link": "Reflect and reshape in one flow",
+        "score_type": "continuous",
+        "target": 0.7,
+        "measurement": "LLM scores each evening recap 0-1 on forward-momentum language, weekly average",
+        "grader": "llm",
+        "frequency": "weekly"
+      },
+      {
+        "id": "li-003",
+        "name": "Backlog hygiene activation",
+        "jtbd_link": "See the full landscape",
+        "score_type": "binary",
+        "target": 1.0,
+        "measurement": "at_least_one_merge_or_delete_in_first_week (1 if yes, 0 if no)",
+        "grader": "code",
+        "frequency": "weekly"
+      }
+    ],
+    "secondary": [
+      {
+        "id": "li-004",
+        "name": "Todoist displacement",
+        "jtbd_link": null,
+        "score_type": "binary",
+        "target": 1.0,
+        "measurement": "zero_todoist_task_creates_this_week (1 if zero, 0 if any)",
+        "grader": "code",
+        "frequency": "weekly"
+      }
+    ]
+  },
+  "guardrails": [
+    {
+      "id": "guard-001",
+      "source": "negative-case-pattern",
+      "statement": "System must never add complexity that threatens daily usage",
+      "fail_condition": "Daily usage drops below 4 of 5 weekdays in any given week",
+      "measurement": "weekdays_with_any_system_interaction / 5",
+      "target": 0.8,
+      "grader": "code"
+    }
+  ]
+}

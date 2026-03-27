@@ -1,0 +1,177 @@
+{
+  "projectName": "Todolist",
+  "projectSlug": "todolist",
+  "projectPath": "/Users/michaelhaase/AI/Products/todolist",
+  "currentPhase": 5,
+  "completedPhases": [1, 2, 3, 4, 5],
+  "startedAt": "2026-03-26T00:00:00Z",
+  "lastUpdated": "2026-03-26T00:00:00Z",
+  "upstreamInputs": {
+    "strategyParsed": true,
+    "archetypeParsed": true,
+    "shortCircuited": false,
+    "vision": "A task system that thinks alongside me — surfacing what matters most each day from everything I've committed to, learned, and reflected on.",
+    "whereToPlay": "Single user (Michael), CLI + mobile interface + /morning skill integration. Tasks, priorities, relationships, and context in one owned system.",
+    "principles": [
+      "Landscape over directives — show the full picture, let me decide",
+      "Frictionless capture, rich context later — one-liners in, enrichment during planning",
+      "Deep integration over standalone value — composable pieces that optimize individually"
+    ],
+    "jtbdNow": [
+      "Capture a task instantly",
+      "See the full landscape",
+      "Reflect and reshape in one flow",
+      "Get AI-powered priority suggestions",
+      "See task relationships during planning"
+    ],
+    "proposedApproach": {
+      "name": "Headless Brain",
+      "formFactor": "CLI-first task backend on Supabase, no frontend in V1",
+      "howToWin": "A CLI-first task backend on Supabase that Claude Code and agents can read/write natively — no frontend needed because any UI can be generated on demand.",
+      "jtbdConnections": [
+        { "jtbd": "Capture a task instantly", "fit": "strong" },
+        { "jtbd": "See the full landscape", "fit": "partial" },
+        { "jtbd": "Reflect and reshape in one flow", "fit": "strong" },
+        { "jtbd": "Get AI-powered priority suggestions", "fit": "strong" },
+        { "jtbd": "See task relationships during planning", "fit": "strong" }
+      ]
+    },
+    "boundaries": {
+      "noGos": [
+        "No web frontend in V1",
+        "No MCP server in V1",
+        "No multi-user support",
+        "No auto-archiving of stale tasks",
+        "No Taskwarrior codebase fork",
+        "No notification system",
+        "No natural language date parsing in V1"
+      ],
+      "constraints": [
+        "Must run alongside Todoist during transition",
+        "Must be accessible from any machine (Supabase, not local files)",
+        "Must produce JSON output for all commands",
+        "Must share Supabase instance with Morning Brew",
+        "CLI capture must complete in under 5 seconds"
+      ]
+    }
+  },
+  "behavioralEvals": [
+    {
+      "id": "eval-001",
+      "jtbd": "Capture a task instantly",
+      "statement": "Michael captures 2+ tasks on each weekday via the td CLI or chat bridge",
+      "score_type": "continuous",
+      "target": 1.0,
+      "baseline": null,
+      "measurement": "weekdays_with_2plus_captures / 5",
+      "success_criteria": "Score of 1.0 for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2
+    },
+    {
+      "id": "eval-002",
+      "jtbd": "See the full landscape",
+      "statement": "When the system proposes related tasks or reframings, Michael acts on the suggestions",
+      "score_type": "continuous",
+      "target": 0.6,
+      "baseline": null,
+      "measurement": "proposals_acted_on / proposals_shown",
+      "success_criteria": "Score of 0.6 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2
+    },
+    {
+      "id": "eval-003",
+      "jtbd": "Reflect and reshape in one flow",
+      "statement": "After completing evening recap, Michael completes tomorrow's plan in the same session on mobile",
+      "score_type": "continuous",
+      "target": 0.8,
+      "baseline": null,
+      "measurement": "evening_sessions_with_plan_completed / evening_sessions_with_recap",
+      "success_criteria": "Score of 0.8 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2
+    },
+    {
+      "id": "eval-004",
+      "jtbd": "Get AI-powered priority suggestions",
+      "statement": "Michael engages with AI priority challenges — reprioritizing tasks or explicitly confirming after devil's advocate pushback",
+      "score_type": "continuous",
+      "target": 0.3,
+      "baseline": null,
+      "measurement": "priority_reconsiderations_engaged / ai_priority_challenges_shown",
+      "success_criteria": "Score of 0.3 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2
+    },
+    {
+      "id": "eval-005",
+      "jtbd": "See task relationships during planning",
+      "statement": "Planning sessions produce relationship-driven backlog churn — merges, deletes, and resurfaced tasks",
+      "score_type": "continuous",
+      "target": 0.8,
+      "baseline": null,
+      "measurement": "min(1, relationship_driven_actions / 3) per planning session",
+      "success_criteria": "Score of 0.8 or higher for 2 consecutive weeks",
+      "grader": "code",
+      "quality_tier": 2
+    }
+  ],
+  "leadingIndicators": {
+    "primary": [
+      {
+        "id": "li-001",
+        "name": "Priority concentration trend",
+        "jtbd_link": "Get AI-powered priority suggestions",
+        "score_type": "continuous",
+        "target": 0.7,
+        "measurement": "this_week_p0p1_ratio >= last_week_p0p1_ratio (1 if improved or held, 0 if declined)",
+        "grader": "code",
+        "frequency": "weekly"
+      },
+      {
+        "id": "li-002",
+        "name": "Recap momentum tone",
+        "jtbd_link": "Reflect and reshape in one flow",
+        "score_type": "continuous",
+        "target": 0.7,
+        "measurement": "LLM scores each evening recap 0-1 on forward-momentum language, weekly average",
+        "grader": "llm",
+        "frequency": "weekly"
+      },
+      {
+        "id": "li-003",
+        "name": "Backlog hygiene activation",
+        "jtbd_link": "See the full landscape",
+        "score_type": "binary",
+        "target": 1.0,
+        "measurement": "at_least_one_merge_or_delete_in_first_week (1 if yes, 0 if no)",
+        "grader": "code",
+        "frequency": "weekly"
+      }
+    ],
+    "secondary": [
+      {
+        "id": "li-004",
+        "name": "Todoist displacement",
+        "jtbd_link": null,
+        "score_type": "binary",
+        "target": 1.0,
+        "measurement": "zero_todoist_task_creates_this_week (1 if zero, 0 if any)",
+        "grader": "code",
+        "frequency": "weekly"
+      }
+    ]
+  },
+  "guardrailEvals": [
+    {
+      "id": "guard-001",
+      "source": "negative-case-pattern",
+      "statement": "System must never add complexity that threatens daily usage",
+      "fail_condition": "Daily usage drops below 4 of 5 weekdays in any given week",
+      "measurement": "weekdays_with_any_system_interaction / 5",
+      "target": 0.8,
+      "grader": "code"
+    }
+  ]
+}

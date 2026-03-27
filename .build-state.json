@@ -1,0 +1,76 @@
+{
+  "projectName": "Todolist — Headless Brain",
+  "projectPath": "/Users/michaelhaase/AI/Products/todolist",
+  "upstreamPaths": {
+    "strategy": "strategy.md",
+    "evals": "evals.json",
+    "beadsDb": ".beads/"
+  },
+  "sessionCount": 3,
+  "currentSession": null,
+  "completedSessions": [
+    {
+      "number": 1,
+      "taskId": "AI-vk2",
+      "taskTitle": "Design Supabase schema for tasks",
+      "evalsBefore": {},
+      "evalsAfter": {},
+      "outcome": "closed",
+      "report": ".build-sessions/session-001.md"
+    },
+    {
+      "number": 2,
+      "taskId": "AI-vnv",
+      "taskTitle": "Build Todoist export + migration script",
+      "evalsBefore": {},
+      "evalsAfter": {},
+      "outcome": "closed",
+      "report": ".build-sessions/session-002.md"
+    },
+    {
+      "number": 3,
+      "taskId": "AI-kg0",
+      "taskTitle": "Verify migration integrity + Checkpoint 1",
+      "evalsBefore": {},
+      "evalsAfter": {},
+      "outcome": "closed",
+      "report": ".build-sessions/session-003.md"
+    }
+  ],
+  "evalBaselines": {
+    "eval-001": { "score": null, "measuredAt": null },
+    "eval-002": { "score": null, "measuredAt": null },
+    "eval-003": { "score": null, "measuredAt": null },
+    "eval-004": { "score": null, "measuredAt": null },
+    "eval-005": { "score": null, "measuredAt": null },
+    "guard-001": { "score": null, "measuredAt": null }
+  },
+  "techDecisions": [
+    {
+      "decision": "Supabase Postgres on shared instance (xwxsrsybllifbivhgojl) with Morning Brew",
+      "rationale": "Strategy requires shared instance. REST API access via publishable key. No SDK.",
+      "sessionNumber": 1,
+      "taskId": "AI-vk2"
+    },
+    {
+      "decision": "Flexible labels table instead of project column",
+      "rationale": "User requested flexibility — projects, contexts, areas all via label_type. No schema change for new groupings.",
+      "sessionNumber": 1,
+      "taskId": "AI-vk2"
+    },
+    {
+      "decision": "Priority 0-4 (P0=critical, P4=backlog). Todoist mapping: 1→P0, 2→P1, 3→P2, 4→P3",
+      "rationale": "Extends Todoist's 4 levels with P4 for backlog. Consistent with beads priority model.",
+      "sessionNumber": 1,
+      "taskId": "AI-vk2"
+    },
+    {
+      "decision": "Todoist v1 API priority mapping: 4(urgent)→P0, 3(high)→P1, 2(medium)→P2, 1(normal)→P3",
+      "rationale": "Todoist v1 API reversed priority numbering from v2. Verified via spot checks.",
+      "sessionNumber": 2,
+      "taskId": "AI-vnv"
+    }
+  ],
+  "knownIssues": [],
+  "lastUpdated": "2026-03-27T08:30:00Z"
+}

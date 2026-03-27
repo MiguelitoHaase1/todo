@@ -1,0 +1,78 @@
+{
+  "projectName": "Todolist",
+  "strategySource": "strategy.md",
+  "currentPhase": 7,
+  "completedPhases": [1, 2, 3, 4, 5, 6, 7],
+  "startedAt": "2026-03-26T00:00:00Z",
+  "lastUpdated": "2026-03-26T00:00:00Z",
+  "strategy": {
+    "title": "Todolist",
+    "vision": "A task system that thinks alongside me — surfacing what matters most each day from everything I've committed to, learned, and reflected on.",
+    "where_to_play": "Single user (Michael), CLI + mobile web + /morning skill integration. Tasks, priorities, relationships, and context in one owned system.",
+    "principles": [
+      "Landscape over directives — show the full picture, let me decide",
+      "Frictionless capture, rich context later — one-liners in, enrichment during planning",
+      "Deep integration over standalone value — composable pieces that optimize individually"
+    ],
+    "jtbd_now": [
+      "Capture a task instantly",
+      "See the full landscape",
+      "Reflect and reshape in one flow",
+      "Get AI-powered priority suggestions",
+      "See task relationships during planning"
+    ],
+    "jtbd_later": [
+      "Track task history and evolution",
+      "Browse and reprioritize on mobile"
+    ],
+    "jtbd_never": [
+      "Auto-detect stale and abandoned tasks"
+    ]
+  },
+  "research": {
+    "completed": true,
+    "existingProducts": ["Motion", "Saner.ai", "Morgen", "Vikunja", "Reclaim.ai"],
+    "githubRepos": ["Taskwarrior", "claude-task-master", "TaskLite", "mcp-taskmanager", "todo-mcp"],
+    "trends": ["MCP task servers exploding", "AI agent task graphs hot", "Personal+CLI+AI wide open"],
+    "gaps": ["No capture-to-reflection bridge", "MCP servers are agent-facing not human-facing", "Taskwarrior data model but no AI", "AI tools are cloud-only walled gardens", "No reflection-to-prioritization feedback loop"]
+  },
+  "exploration": {
+    "layer1Selected": [4, 6, 3],
+    "layer2Selected": ["supabase-backend", "cli-first", "chat-bridge"],
+    "synthesizedCandidates": ["Headless Brain", "CLI+MCP+Web", "Taskwarrior Fork"]
+  },
+  "candidates": [
+    { "id": "headless-brain", "name": "Headless Brain", "selected": true },
+    { "id": "cli-mcp-web", "name": "CLI + MCP + Web", "selected": false },
+    { "id": "tw-fork", "name": "Taskwarrior Fork + AI", "selected": false }
+  ],
+  "deployment": { "vercelUrl": null },
+  "selection": {
+    "selectedArchetypeId": "headless-brain",
+    "howToWin": "A CLI-first task backend on Supabase that Claude Code and agents can read/write natively — no frontend needed because any UI can be generated on demand.",
+    "boundaries": {
+      "no_gos": [
+        "No web frontend in V1",
+        "No MCP server in V1",
+        "No multi-user support",
+        "No auto-archiving of stale tasks",
+        "No Taskwarrior codebase fork",
+        "No notification system",
+        "No NLP date parsing in V1"
+      ],
+      "rabbit_holes": [
+        { "trap": "Rebuilding Taskwarrior recurrence engine", "avoidance": "Simple repeat rules only" },
+        { "trap": "Over-engineering relationship model", "avoidance": "Two link types: parent/child and related" },
+        { "trap": "Full iMessage bot framework", "avoidance": "Thin CLI bridge via Discord or Shortcuts" },
+        { "trap": "Premature AI prioritization", "avoidance": "Simple urgency scoring. AI lives in /morning skill." }
+      ],
+      "constraints": [
+        "Run alongside Todoist during transition",
+        "Accessible from any machine via Supabase",
+        "JSON output for all commands",
+        "Share Supabase instance with Morning Brew",
+        "Capture under 5 seconds"
+      ]
+    }
+  }
+}

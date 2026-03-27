@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&family=SF+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #FAF9F6;
+    --bg-secondary: #F0EFEB;
+    --bg-card: #FFFFFF;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B6B6B;
+    --text-muted: #9B9B9B;
+    --coral: #D97757;
+    --coral-light: rgba(217, 119, 87, 0.1);
+    --coral-dark: #C4684A;
+    --sage: #B8C4B8;
+    --border-light: #E5E4E0;
+    --border-medium: #D1D0CC;
+    --font-heading: 'Source Serif 4', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'SF Mono', 'Consolas', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 48px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 16px;
+    margin-top: 48px;
+  }
+
+  h3 {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 17px;
+    margin-bottom: 32px;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--coral);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 150ms ease-out;
+  }
+
+  .card:hover { border-color: var(--border-medium); }
+
+  .card-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .card-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .badge-critical { background: var(--coral-light); color: var(--coral-dark); }
+  .badge-parallel { background: rgba(184, 196, 184, 0.3); color: #5A6B5A; }
+  .badge-checkpoint { background: rgba(197, 193, 214, 0.3); color: #6B6580; }
+
+  .coverage-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .coverage-table th {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--border-medium);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+
+  .coverage-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .coverage-table tr:last-child td { border-bottom: none; }
+
+  .coverage-thin { color: var(--coral); font-weight: 500; }
+  .coverage-good { color: #5A6B5A; }
+
+  .risk-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .risk-item:last-child { border-bottom: none; }
+
+  .risk-score {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--coral);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .reflection-prompt {
+    padding: 16px 20px;
+    background: var(--coral-light);
+    border-left: 3px solid var(--coral);
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .boundary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .boundary-table th {
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .boundary-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+
+  .dep-graph {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .dep-node { display: flex; align-items: center; gap: 8px; }
+  .dep-node .arrow { color: var(--text-muted); }
+  .dep-node .epic { color: var(--coral); font-weight: 600; }
+  .dep-node .task { color: var(--text-secondary); }
+  .dep-node .checkpoint { color: #6B6580; font-weight: 500; }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 48px 0;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 28px; }
+    .stats-bar { flex-direction: column; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<script>
+// === PLAN_DATA_START ===
+const PLAN_DATA = {
+  name: "Todolist — Headless Brain",
+  date: "2026-03-26",
+  strategySource: "strategy.md + evals.json + archetype-selection.md",
+
+  stats: {
+    epics: 5,
+    tasks: 16,
+    checkpoints: 3,
+    parallelTracks: 1,
+    dependencyDepth: 5,
+    estimatedSessions: 19
+  },
+
+  criticalPath: [
+    { type: "epic", id: "epic-1", title: "Todoist Migration + Supabase Schema", badge: "critical" },
+    { type: "epic", id: "epic-2", title: "Frictionless Capture + Quick Triage", badge: "critical" },
+    { type: "epic", id: "epic-3", title: "/morning Skill Integration", badge: "critical" },
+    { type: "checkpoint", id: "cp-2", title: "GATE: Daily workflow >= today" },
+    { type: "epic", id: "epic-4", title: "Relationships + AI Triangulation", badge: "parallel" },
+    { type: "epic", id: "epic-5", title: "AI Priority Challenges", badge: "parallel" },
+    { type: "checkpoint", id: "cp-3", title: "Final eval suite" },
+  ],
+
+  dependencyGraph: [
+    { text: "[Epic 1] Todoist Migration + Supabase Schema  (P0)", type: "epic" },
+    { text: "  \u251C\u2500\u2500 Task 1.1: Design Supabase schema", type: "task" },
+    { text: "  \u251C\u2500\u2500 Task 1.2: Build Todoist export + migration script", type: "task" },
+    { text: "  \u2514\u2500\u2500 Task 1.3: Verify migration (count match + spot check)", type: "task" },
+    { text: "  \u2514\u2500\u2500 [Checkpoint] Verify data integrity", type: "checkpoint" },
+    { text: "      \u2502", type: "task" },
+    { text: "[Epic 2] Frictionless Capture + Quick Triage  (P0)", type: "epic" },
+    { text: "  \u251C\u2500\u2500 Task 2.1: CLI core (td add, td list, td done, td show)", type: "task" },
+    { text: "  \u251C\u2500\u2500 Task 2.2: iMessage bridge for task capture", type: "task" },
+    { text: "  \u2514\u2500\u2500 Task 2.3: Triage flow via iMessage", type: "task" },
+    { text: "      \u2502", type: "task" },
+    { text: "[Epic 3] /morning Skill Integration  (P0)", type: "epic" },
+    { text: "  \u251C\u2500\u2500 Task 3.1: Replace Todoist reads with Supabase queries", type: "task" },
+    { text: "  \u251C\u2500\u2500 Task 3.2: Replace Todoist writes with Supabase mutations", type: "task" },
+    { text: "  \u251C\u2500\u2500 Task 3.3: Clean plan view (today vs deferred bucket)", type: "task" },
+    { text: "  \u2514\u2500\u2500 Task 3.4: Todoist hidden fallback (feature flag)", type: "task" },
+    { text: "  \u2514\u2500\u2500 [Checkpoint] GATE: daily workflow >= today", type: "checkpoint" },
+    { text: "      \u2502", type: "task" },
+    { text: "      \u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510", type: "task" },
+    { text: "      \u2502                                  \u2502", type: "task" },
+    { text: "[Epic 4] Relationships + Triangulation (P1)   [Epic 5] Priority Challenges (P1)", type: "epic" },
+    { text: "  \u251C\u2500\u2500 Task 4.1: Relationship storage       \u251C\u2500\u2500 Task 5.1: Tunnel vision detection", type: "task" },
+    { text: "  \u251C\u2500\u2500 Task 4.2: AI relationship detection   \u251C\u2500\u2500 Task 5.2: Challenge generation", type: "task" },
+    { text: "  \u2514\u2500\u2500 Task 4.3: Merge/sequence proposals    \u2514\u2500\u2500 Task 5.3: Lightweight delivery", type: "task" },
+    { text: "      \u2502                                  \u2502", type: "task" },
+    { text: "      \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518", type: "task" },
+    { text: "                       \u2502", type: "task" },
+    { text: "           [Checkpoint] Final eval suite", type: "checkpoint" },
+  ],
+
+  evalCoverage: [
+    { evalId: "eval-001", statement: "Michael captures 2+ tasks on each weekday", epics: ["Epic 2"], taskCount: 3, status: "good" },
+    { evalId: "eval-002", statement: "Michael acts on system proposals for related tasks", epics: ["Epic 2", "Epic 4"], taskCount: 4, status: "good" },
+    { evalId: "eval-003", statement: "Evening recap flows into tomorrow's plan on mobile", epics: ["Epic 3"], taskCount: 4, status: "good" },
+    { evalId: "eval-004", statement: "Michael engages with AI priority challenges", epics: ["Epic 5"], taskCount: 3, status: "good" },
+    { evalId: "eval-005", statement: "Planning sessions produce relationship-driven churn", epics: ["Epic 4"], taskCount: 3, status: "good" },
+    { evalId: "guard-001", statement: "Daily usage >= 4/5 weekdays (workflow weight ceiling)", epics: ["All"], taskCount: 16, status: "good" },
+    { evalId: "li-001", statement: "Priority concentration trend improves week over week", epics: ["Epic 5"], taskCount: 3, status: "good" },
+    { evalId: "li-002", statement: "Recap momentum tone shifts toward forward language", epics: ["Epic 3"], taskCount: 4, status: "good" },
+    { evalId: "li-003", statement: "Backlog hygiene activation in first week", epics: ["Epic 4"], taskCount: 3, status: "good" },
+    { evalId: "li-004", statement: "Todoist displacement (zero creates in Todoist)", epics: ["Epic 1", "Epic 3"], taskCount: 7, status: "good" },
+  ],
+
+  concentrationRisks: [
+    { item: "Task 1.1: Supabase schema design", score: 15, reason: "Every downstream task depends on this schema. A wrong design forces rework across all 5 epics." },
+    { item: "Epic 3 gate: daily workflow >= today", score: 8, reason: "Blocks both parallel tracks (Epics 4 and 5). If this gate doesn't pass, no new capabilities ship." },
+    { item: "Task 2.2: iMessage bridge", score: 6, reason: "Primary capture surface and triage channel. If this breaks, eval-001 and the phone-first workflow fail." },
+    { item: "Task 3.1: Replace Todoist reads", score: 5, reason: "The data source swap. If queries don't match Todoist's output shape, /morning skill breaks." },
+  ],
+
+  reflectionPrompts: [
+    "Epic 1 has 3 tasks, Epic 3 has 4. The schema design (Task 1.1) carries disproportionate risk \u2014 should it be split into schema + review as two tasks?",
+    "The iMessage bridge (Task 2.2) is both the capture surface and triage channel. Should capture and triage be separate tasks with independent verification?",
+    "Epics 4 and 5 run in parallel after the gate. If one finishes early, should the freed agent help with the other, or stay idle?",
+    "The Todoist fallback (Task 3.4) is a safety net. What's the trigger to remove it? Should that be an explicit task or a future decision?",
+    "eval-004 (AI priority challenges) has the lowest target (0.3). Is the entire Epic 5 worth building if the bar is that low \u2014 or does the low target reflect the difficulty of the job, not its importance?",
+    "The migration (Epic 1) assumes Todoist API access is reliable. What's the fallback if the API rate-limits or changes format mid-export?",
+    "guard-001 (4/5 weekdays usage) is the meta-eval. Should there be a task specifically to instrument this measurement, or does it emerge from existing event logging?"
+  ],
+
+  boundaries: {
+    can: [
+      "Split or merge tasks within an epic",
+      "Add FR-level evals (more coverage is always good)",
+      "Strengthen existing evals (make more specific, add edge cases)",
+      "Add guardrails for newly discovered risks",
+      "Reorder tasks within an epic",
+      "Defer tasks to later in the graph",
+      "Adjust effort estimates"
+    ],
+    cannot: [
+      "Delete or weaken FR-level evals (these are the contract)",
+      "Remove or reduce epic scope",
+      "Change JTBD scope",
+      "Add new epics without human approval",
+      "Skip the quality gate (typecheck && lint && test)",
+      "Reverse foundational architecture decisions (schema, Supabase choice)",
+      "Activate Todoist fallback without explicit approval"
+    ],
+    escalation: [
+      "Eval failure rate > 30% within an epic",
+      "Architecture conflict that blocks multiple tasks",
+      "Schema change needed after migration is complete",
+      "iMessage bridge infeasible (platform limitation discovered)",
+      "Scope explosion (epic requires > 8 tasks)",
+      "Circular dependency that can't be resolved by reordering"
+    ]
+  },
+
+  epics: [
+    {
+      id: "epic-1",
+      title: "Todoist Migration + Supabase Schema",
+      jtbd: "Foundation for all 5 JTBDs",
+      evalTargets: "FR-001a (count match), FR-001b (field fidelity), FR-001c (schema ready)",
+      priority: "P0",
+      onCriticalPath: true,
+      tasks: [
+        { id: "task-1.1", title: "Design Supabase schema", evalSpec: "FR-001c", doneWhen: "Tasks table + relationships table + context links. Insert/query round-trip works. Schema supports priorities, dates, descriptions, relationships." },
+        { id: "task-1.2", title: "Build Todoist export + migration script", evalSpec: "FR-001a, FR-001b", doneWhen: "Pull all active Todoist tasks via API. Transform to Supabase schema. Insert all rows. Count matches Todoist exactly." },
+        { id: "task-1.3", title: "Verify migration integrity", evalSpec: "FR-001a, FR-001b", doneWhen: "Automated count match. Spot-check 10 random tasks: priority, date, description all match originals. Zero data loss confirmed." },
+      ]
+    },
+    {
+      id: "epic-2",
+      title: "Frictionless Capture + Quick Triage",
+      jtbd: "Capture a task instantly + See the full landscape",
+      evalTargets: "eval-001 >= 1.0, eval-002 >= 0.6, guard-001",
+      priority: "P0",
+      onCriticalPath: true,
+      tasks: [
+        { id: "task-2.1", title: "CLI core (td add, td list, td done, td show)", evalSpec: "FR-002a", doneWhen: "All 4 commands work against Supabase. JSON output for all. td add completes in < 5 seconds. Priority and date flags work." },
+        { id: "task-2.2", title: "iMessage bridge for task capture", evalSpec: "FR-002b, FR-002c", doneWhen: "Send iMessage with task text \u2192 task created in Supabase \u2192 confirmation reply within 5 seconds. Supports priority and date in message." },
+        { id: "task-2.3", title: "Triage flow via iMessage", evalSpec: "FR-002e, FR-002f", doneWhen: "System pushes low-priority/stale tasks for tomorrow. Quick reply to defer/drop/keep. Actions reflected in Supabase within 5 seconds." },
+      ]
+    },
+    {
+      id: "epic-3",
+      title: "/morning Skill Integration (Todoist Replacement)",
+      jtbd: "Reflect and reshape in one flow",
+      evalTargets: "eval-003 >= 0.8, guard-001, li-004",
+      priority: "P0",
+      onCriticalPath: true,
+      tasks: [
+        { id: "task-3.1", title: "Replace Todoist reads with Supabase queries", evalSpec: "FR-003a", doneWhen: "/morning skill fetches tasks from Supabase. Morning Brew plan renders with correct tasks. Todoist not queried." },
+        { id: "task-3.2", title: "Replace Todoist writes with Supabase mutations", evalSpec: "FR-003c", doneWhen: "Check-off, defer, reprioritize all write to Supabase. State updates within 2 seconds. Morning Brew reflects changes." },
+        { id: "task-3.3", title: "Clean plan view (today vs deferred bucket)", evalSpec: "FR-003b", doneWhen: "Today's tasks in main list. Deferred tasks in separate labeled section. No clutter. 15 tasks with 5 today renders cleanly." },
+        { id: "task-3.4", title: "Todoist hidden fallback (feature flag)", evalSpec: "FR-003a", doneWhen: "Environment variable toggles Todoist as data source. Default: off (Supabase). Switching to Todoist restores previous behavior exactly." },
+      ]
+    },
+    {
+      id: "epic-4",
+      title: "Task Relationships + AI Triangulation",
+      jtbd: "See task relationships during planning + See the full landscape",
+      evalTargets: "eval-005 >= 0.8, eval-002 >= 0.6, guard-001",
+      priority: "P1",
+      onCriticalPath: false,
+      tasks: [
+        { id: "task-4.1", title: "Relationship storage + CLI commands", evalSpec: "FR-004a", doneWhen: "task_links table in Supabase. td link/unlink commands work. td show displays related tasks. Two link types: parent/child, related." },
+        { id: "task-4.2", title: "AI relationship detection during planning", evalSpec: "FR-004b, FR-004d", doneWhen: "During /morning planning, AI surfaces connections between tasks. References multiple context sources. Waits for human decision. < 20% spurious proposals." },
+        { id: "task-4.3", title: "Merge/sequence proposal flow", evalSpec: "FR-004c", doneWhen: "Near-duplicate or overlapping tasks shown side by side with suggested merge. Michael confirms or rejects. Merge executes in Supabase." },
+      ]
+    },
+    {
+      id: "epic-5",
+      title: "AI Priority Challenges (Devil's Advocate)",
+      jtbd: "Get AI-powered priority suggestions",
+      evalTargets: "eval-004 >= 0.3, guard-001, li-001",
+      priority: "P1",
+      onCriticalPath: false,
+      tasks: [
+        { id: "task-5.1", title: "Tunnel vision detection", evalSpec: "FR-005b", doneWhen: "System detects when same P1 topic has been active 3+ days. Surfaces neglected high-priority tasks. Uses task history + calendar + reflections." },
+        { id: "task-5.2", title: "Priority challenge generation", evalSpec: "FR-005a", doneWhen: "AI generates challenges referencing 2+ context sources. 1-2 challenges per planning session, not 5+. Challenges are specific, not generic." },
+        { id: "task-5.3", title: "Lightweight challenge delivery", evalSpec: "FR-005c", doneWhen: "Challenge is 1-2 sentences. No mandatory response required. Actionable in under 30 seconds. Doesn't block the planning flow." },
+      ]
+    },
+  ]
+};
+// === PLAN_DATA_END ===
+</script>
+
+<h1 id="plan-title"></h1>
+<p class="subtitle" id="plan-subtitle"></p>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<h2>Critical Path</h2>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">The shortest route through the eval landscape. Everything on this path is a bottleneck.</p>
+<div class="dep-graph" id="dep-graph"></div>
+
+<div class="section-divider"></div>
+
+<h2>Eval Coverage</h2>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">Every product-level eval must be targeted by at least one epic and task. <span class="coverage-thin">Thin coverage</span> means one failure breaks the chain.</p>
+<div class="card">
+  <table class="coverage-table" id="coverage-table">
+    <thead><tr><th>Eval</th><th>Statement</th><th>Epics</th><th>Tasks</th><th>Status</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="section-divider"></div>
+
+<h2>Concentration Risk</h2>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">Items that block the most downstream work. Single points of failure.</p>
+<div class="card" id="risk-list"></div>
+
+<div class="section-divider"></div>
+
+<h2>Reflection Prompts</h2>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">Answer these before approving. They surface weak spots the stats don't show.</p>
+<div id="reflection-prompts"></div>
+
+<div class="section-divider"></div>
+
+<h2>Adaptation Boundaries</h2>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">Rules governing what agents can and cannot change during execution.</p>
+<div class="card">
+  <table class="boundary-table" id="boundary-table">
+    <thead><tr><th style="width:140px">Category</th><th>Rules</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="section-divider"></div>
+
+<h2>Epics & Tasks</h2>
+<div id="epics-list"></div>
+
+<script>
+  document.getElementById('plan-title').textContent = `Plan Review: ${PLAN_DATA.name}`;
+  document.getElementById('plan-subtitle').textContent = `Generated ${PLAN_DATA.date} from ${PLAN_DATA.strategySource}`;
+
+  const statsBar = document.getElementById('stats-bar');
+  const statsItems = [
+    { value: PLAN_DATA.stats.epics, label: 'Epics' },
+    { value: PLAN_DATA.stats.tasks, label: 'Tasks' },
+    { value: PLAN_DATA.stats.checkpoints, label: 'Checkpoints' },
+    { value: PLAN_DATA.stats.parallelTracks, label: 'Parallel Tracks' },
+    { value: PLAN_DATA.stats.dependencyDepth, label: 'Dependency Depth' },
+    { value: PLAN_DATA.stats.estimatedSessions, label: 'Est. Sessions' },
+  ];
+  statsBar.innerHTML = statsItems.map(s => `
+    <div class="stat">
+      <span class="stat-value">${s.value}</span>
+      <span class="stat-label">${s.label}</span>
+    </div>
+  `).join('');
+
+  const depGraph = document.getElementById('dep-graph');
+  depGraph.innerHTML = PLAN_DATA.dependencyGraph.map(node => `
+    <div class="dep-node">
+      <span class="${node.type}">${node.text}</span>
+    </div>
+  `).join('');
+
+  const coverageBody = document.querySelector('#coverage-table tbody');
+  coverageBody.innerHTML = PLAN_DATA.evalCoverage.map(e => `
+    <tr>
+      <td><code>${e.evalId}</code></td>
+      <td>${e.statement}</td>
+      <td>${e.epics.join(', ')}</td>
+      <td>${e.taskCount}</td>
+      <td class="${e.status === 'thin' ? 'coverage-thin' : 'coverage-good'}">${e.status === 'thin' ? 'Thin' : 'Good'}</td>
+    </tr>
+  `).join('');
+
+  const riskList = document.getElementById('risk-list');
+  riskList.innerHTML = PLAN_DATA.concentrationRisks.map(r => `
+    <div class="risk-item">
+      <span class="risk-score">${r.score}</span>
+      <div>
+        <strong>${r.item}</strong>
+        <div style="color: var(--text-secondary); font-size: 13px;">${r.reason}</div>
+      </div>
+    </div>
+  `).join('') || '<p style="color: var(--text-muted); padding: 12px;">No concentration risks identified.</p>';
+
+  const reflectionDiv = document.getElementById('reflection-prompts');
+  reflectionDiv.innerHTML = PLAN_DATA.reflectionPrompts.map(p => `
+    <div class="reflection-prompt">${p}</div>
+  `).join('');
+
+  const boundaryBody = document.querySelector('#boundary-table tbody');
+  const boundaryRows = [
+    { cat: 'Agents CAN', items: PLAN_DATA.boundaries.can, color: '#5A6B5A' },
+    { cat: 'Agents CANNOT', items: PLAN_DATA.boundaries.cannot, color: 'var(--coral-dark)' },
+    { cat: 'Escalation Triggers', items: PLAN_DATA.boundaries.escalation, color: '#6B6580' },
+  ];
+  boundaryBody.innerHTML = boundaryRows.map(b => `
+    <tr>
+      <td style="font-weight: 600; color: ${b.color};">${b.cat}</td>
+      <td><ul style="margin: 0; padding-left: 16px;">${b.items.map(i => `<li>${i}</li>`).join('')}</ul></td>
+    </tr>
+  `).join('');
+
+  const epicsList = document.getElementById('epics-list');
+  epicsList.innerHTML = PLAN_DATA.epics.map(epic => `
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <span class="card-title">${epic.title}</span>
+        ${epic.onCriticalPath ? '<span class="badge badge-critical">Critical Path</span>' : '<span class="badge badge-parallel">Parallel</span>'}
+        <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary);">${epic.priority}</span>
+      </div>
+      <div class="card-meta">JTBD: ${epic.jtbd} &middot; Target: ${epic.evalTargets}</div>
+      ${epic.tasks.map(t => `
+        <div style="padding: 8px 0 8px 16px; border-left: 2px solid var(--border-light); margin-left: 8px; margin-top: 8px;">
+          <div style="font-weight: 500; font-size: 14px;">${t.title}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">Eval: ${t.evalSpec} &middot; Done when: ${t.doneWhen}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+</script>
+
+</body>
+</html>
