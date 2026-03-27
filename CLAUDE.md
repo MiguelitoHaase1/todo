@@ -1,6 +1,7 @@
 # Todolist — Headless Brain
 
 For context about Michael's priorities, daily rhythms, and decision-making, see `skills/know-michael.md`.
+For planning principles (how to prioritize, schedule, triage, and handle overflow), see `skills/planning-principles.md`.
 
 ## iMessage Task Capture
 
