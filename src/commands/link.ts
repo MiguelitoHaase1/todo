@@ -1,4 +1,4 @@
-import { sbInsert, sbSelect, resolveTask, type TaskLink } from "../supabase.ts";
+import { sbInsert, findLinksBetween, resolveTask, type TaskLink } from "../supabase.ts";
 import { shortId } from "../format.ts";
 
 export async function cmdLink(args: string[]): Promise<void> {
@@ -10,7 +10,6 @@ export async function cmdLink(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Parse --type flag (default: related)
   let linkType = "related";
   const typeArg = args.find((a) => a.startsWith("--type="));
   if (typeArg) {
@@ -26,11 +25,7 @@ export async function cmdLink(args: string[]): Promise<void> {
     resolveTask(filtered[1]),
   ]);
 
-  // Check if link already exists (either direction for "related")
-  const existing = await sbSelect<TaskLink>(
-    "task_links",
-    `or=(and(source_id.eq.${taskA.id},target_id.eq.${taskB.id}),and(source_id.eq.${taskB.id},target_id.eq.${taskA.id}))`,
-  );
+  const existing = await findLinksBetween(taskA.id, taskB.id);
 
   if (existing.length > 0) {
     console.error(`Link already exists between ${shortId(taskA.id)} and ${shortId(taskB.id)}.`);

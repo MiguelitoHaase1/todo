@@ -120,6 +120,17 @@ export interface TaskLink {
   created_at: string;
 }
 
+/** Find links between two specific tasks (checks both directions). */
+export async function findLinksBetween(
+  taskAId: string,
+  taskBId: string,
+): Promise<TaskLink[]> {
+  return sbSelect<TaskLink>(
+    "task_links",
+    `or=(and(source_id.eq.${taskAId},target_id.eq.${taskBId}),and(source_id.eq.${taskBId},target_id.eq.${taskAId}))`,
+  );
+}
+
 /**
  * Resolve a task by full UUID or short prefix.
  * Returns exactly one task or exits with an error.

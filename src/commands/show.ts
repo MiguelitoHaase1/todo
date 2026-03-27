@@ -50,7 +50,6 @@ export async function cmdShow(args: string[]): Promise<void> {
 
   const task = await resolveTask(id);
 
-  // Fetch labels and links in parallel
   const [labelNames, linkedTasks] = await Promise.all([
     sbSelect<TaskLabel>(
       "task_labels",
