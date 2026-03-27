@@ -113,11 +113,21 @@ export interface TaskLabel {
   labels: Label;
 }
 
+export type LinkType = "related" | "parent";
+
 export interface TaskLink {
   source_id: string;
   target_id: string;
-  link_type: string; // "related" | "parent"
+  link_type: LinkType;
   created_at: string;
+}
+
+/** Human-readable direction label for a link relative to a given task. */
+export function linkDirection(link: TaskLink, fromTaskId: string): string {
+  if (link.link_type === "parent") {
+    return link.source_id === fromTaskId ? "→ parent of" : "← child of";
+  }
+  return "↔ related";
 }
 
 /** Find links between two specific tasks (checks both directions). */
@@ -136,8 +146,8 @@ export async function findLinksBetween(
  * Returns exactly one task or exits with an error.
  */
 export async function resolveTask(idPrefix: string): Promise<Task> {
-  // Try exact match first (full UUID)
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   if (uuidPattern.test(idPrefix)) {
     const tasks = await sbSelect<Task>("tasks", `id=eq.${idPrefix}`);
     if (tasks.length === 0) {
@@ -147,8 +157,8 @@ export async function resolveTask(idPrefix: string): Promise<Task> {
     return tasks[0];
   }
 
-  // Short prefix: fetch all IDs and filter client-side
-  const all = await sbSelect<Task>("tasks", "select=id,title,description,priority,status,due_date,todoist_id,created_at,updated_at");
+  // PostgREST can't pattern-match on UUID columns, so filter client-side
+  const all = await sbSelect<Task>("tasks");
   const matches = all.filter((t) => t.id.startsWith(idPrefix));
 
   if (matches.length === 0) {

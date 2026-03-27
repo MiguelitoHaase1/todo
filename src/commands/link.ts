@@ -1,4 +1,4 @@
-import { sbInsert, findLinksBetween, resolveTask, type TaskLink } from "../supabase.ts";
+import { sbInsert, findLinksBetween, resolveTask, type TaskLink, type LinkType } from "../supabase.ts";
 import { shortId } from "../format.ts";
 
 export async function cmdLink(args: string[]): Promise<void> {
@@ -10,14 +10,16 @@ export async function cmdLink(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  let linkType = "related";
+  const validTypes: LinkType[] = ["related", "parent"];
+  let linkType: LinkType = "related";
   const typeArg = args.find((a) => a.startsWith("--type="));
   if (typeArg) {
-    linkType = typeArg.split("=")[1];
-    if (!["related", "parent"].includes(linkType)) {
+    const val = typeArg.split("=")[1] as LinkType;
+    if (!validTypes.includes(val)) {
       console.error('Link type must be "related" or "parent".');
       process.exit(1);
     }
+    linkType = val;
   }
 
   const [taskA, taskB] = await Promise.all([
@@ -41,7 +43,7 @@ export async function cmdLink(args: string[]): Promise<void> {
   if (jsonMode) {
     console.log(JSON.stringify(link, null, 2));
   } else {
-    const arrow = linkType === "parent" ? "→ parent of" : "↔ related to";
+    const arrow = linkType === "parent" ? "→ parent of" : "↔ related";
     console.log(`Linked: ${shortId(taskA.id)} ${arrow} ${shortId(taskB.id)}`);
   }
 }

@@ -1,11 +1,11 @@
-import { resolveTask, sbSelect, type Task, type TaskLabel, type TaskLink } from "../supabase.ts";
+import { resolveTask, sbSelect, linkDirection, type Task, type TaskLabel, type TaskLink, type LinkType } from "../supabase.ts";
 import { formatTaskDetail, shortId } from "../format.ts";
 
 interface LinkedTask {
   id: string;
   title: string;
-  linkType: string;
-  direction: string; // "→" for outgoing, "←" for incoming
+  linkType: LinkType;
+  direction: string;
 }
 
 async function getLinkedTasks(taskId: string): Promise<LinkedTask[]> {
@@ -17,21 +17,17 @@ async function getLinkedTasks(taskId: string): Promise<LinkedTask[]> {
     if (links.length === 0) return [];
 
     const otherIds = links.map((l) => l.source_id === taskId ? l.target_id : l.source_id);
-    const tasks = await sbSelect<Task>(
-      "tasks",
-      `id=in.(${otherIds.join(",")})`,
-    );
+    const tasks = await sbSelect<Task>("tasks", `id=in.(${otherIds.join(",")})`);
     const taskMap = new Map(tasks.map((t) => [t.id, t]));
 
     return links.map((l) => {
-      const isSource = l.source_id === taskId;
-      const otherId = isSource ? l.target_id : l.source_id;
+      const otherId = l.source_id === taskId ? l.target_id : l.source_id;
       const other = taskMap.get(otherId);
       return {
         id: otherId,
         title: other?.title ?? "(unknown)",
         linkType: l.link_type,
-        direction: l.link_type === "parent" ? (isSource ? "→ parent of" : "← child of") : "↔ related",
+        direction: linkDirection(l, taskId),
       };
     });
   } catch {
