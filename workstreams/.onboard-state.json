@@ -1,0 +1,25 @@
+{
+  "product": "todolist",
+  "productDir": "/Users/michaelhaase/AI/Products/todolist",
+  "strategyPath": "/Users/michaelhaase/AI/Products/todolist/strategy.md",
+  "evalsPath": "/Users/michaelhaase/AI/Products/todolist/evals.json",
+  "selectedPlane": "By Journey Phase",
+  "botTokenSaved": false,
+  "botClientId": null,
+  "userPaired": false,
+  "channels": {
+    "input": "1488480354426818620",
+    "processing": "1488480355710271580",
+    "output": "1488480357048385619"
+  },
+  "aliasCreated": false,
+  "completedSteps": [
+    "create-bot",
+    "save-token",
+    "select-plane",
+    "scaffold",
+    "provision-discord",
+    "register-channels",
+    "create-alias"
+  ]
+}
