@@ -88,6 +88,24 @@ export async function sbDelete(
   }
 }
 
+export interface TaskEvent {
+  task_id: string;
+  event_type: "created" | "status_changed" | "priority_changed" | "deferred" | "due_date_set" | "title_changed";
+  previous_value?: string | null;
+  new_value?: string | null;
+  source: "cli" | "imessage" | "discord" | "morning" | "triage" | "plan_tomorrow";
+}
+
+/** Fire-and-forget audit event. Logs to stderr on failure but never throws. */
+export async function emitTaskEvent(event: TaskEvent): Promise<void> {
+  try {
+    await sbInsert("task_events", event as unknown as Record<string, unknown>);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[audit] failed to emit ${event.event_type}: ${msg}`);
+  }
+}
+
 export interface Task {
   id: string;
   title: string;

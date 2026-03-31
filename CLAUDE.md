@@ -29,6 +29,17 @@ npm test          # Run tests
 npm run typecheck # Type check
 ```
 
+## Task Management — Discord Channel Routing
+
+Task management commands (add, list, today, done, triage, plan, morning) can arrive from Discord in addition to iMessage. The /todo skill handles both.
+
+| Channel name | Channel ID | Purpose |
+|-------------|-----------|---------|
+| `#tasks` | `1488660132429562080` | Quick capture, list, done, today |
+| `#planning` | `1488660134702874814` | Triage, plan-tomorrow, morning relay (threaded) |
+
+Multi-step flows in `#planning` use Discord threads for conversation isolation.
+
 ## Continuous Improvements — Discord Workstream Routing
 
 This product has 3 improvement workstreams, each with a dedicated Discord channel.
