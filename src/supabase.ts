@@ -93,7 +93,7 @@ export interface TaskEvent {
   event_type: "created" | "status_changed" | "priority_changed" | "deferred" | "due_date_set" | "title_changed";
   previous_value?: string | null;
   new_value?: string | null;
-  source: "cli" | "imessage" | "discord" | "morning" | "triage" | "plan_tomorrow";
+  source: "cli" | "imessage" | "discord" | "pwa" | "morning" | "triage" | "plan_tomorrow";
 }
 
 /** Fire-and-forget audit event. Logs to stderr on failure but never throws. */

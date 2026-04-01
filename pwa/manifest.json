@@ -4,8 +4,8 @@
   "description": "4-day Kanban view of your task landscape",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#0f0f0f",
+  "background_color": "#FAF9F6",
+  "theme_color": "#FAF9F6",
   "icons": [
     {
       "src": "icon-192.png",
