@@ -19,7 +19,7 @@ The execution engine picks from this queue based on expected eval delta.
 -->
 
 ## Move all-day events to "Worth knowing" section below agenda
-- **Status:** rejected
+- **Status:** queued
 - **Date added:** 2026-03-31
 - **Problem statement:** All-day calendar events land in the timed timeline with a 00:00–23:59 span. The now-line gets stuck inside them all day, and they push the actual scheduled blocks down — making the brew feel broken on any day with an all-day event.
 - **Proposed change:** Filter all-day events out of `buildTimeline()` in `render-morning-brew.ts`. Render them in a minimal "Worth knowing" section below the `.day-timeline` container. Title only — no checkboxes, time slots, or descriptions.
@@ -27,4 +27,4 @@ The execution engine picks from this queue based on expected eval delta.
 - **Expected delta:** +0.1 — removes a daily friction point that degrades the glance experience on days with all-day events
 - **Risks / counterarguments:** Low risk. All-day events are informational context, not actionable blocks. No one will miss them from the timeline. Only risk is edge cases where an event looks all-day but has meaningful start/end times.
 - **Experiment design:** Modify `buildTimeline()` to detect and exclude all-day events. Add a "Worth knowing" HTML section after the timeline. Generate a brew with at least one all-day event. Verify: (1) now-line moves correctly through timed items, (2) all-day event appears in the new section below, (3) brew with no all-day events renders normally without an empty section.
-- **Result:** Rejected. Target file `render-morning-brew.ts` lives in `Me/Productivity/chief-of-staff/src/` — outside the `Products/todolist/` experiment boundary. Re-graduate to the chief-of-staff workstream, or expand the runner's scope. Change is sound; barrier is jurisdictional. See experiment-log/2026-04-01-all-day-events-worth-knowing.md.
+- **Result:** Previously rejected (jurisdictional — target file in Me/Productivity/chief-of-staff/). Re-queued with expanded scope.
