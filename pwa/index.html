@@ -290,20 +290,25 @@
       position: fixed;
       bottom: 24px;
       left: 50%;
-      transform: translateX(-50%);
-      background: var(--text);
-      border-radius: var(--radius-sm);
-      padding: 10px 20px;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
       font-size: 13px;
-      font-weight: 500;
-      color: var(--bg);
+      color: var(--text);
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.2s;
-      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.2s;
+      max-width: 340px;
+      text-align: center;
+      line-height: 1.4;
+      box-shadow: var(--shadow);
       z-index: 200;
     }
-    #status.visible { opacity: 1; }
+    #status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #status .toast-action { font-weight: 600; }
+    #status .toast-task { color: var(--text-secondary); }
 
     /* ── Edit Modal ────────────────────────── */
     .modal-overlay {
@@ -551,12 +556,26 @@
 
   // ── Toast ───────────────────────────────────────────────────────────────
   let toastTimer;
-  function toast(msg) {
+  function toast(html) {
     const el = document.getElementById('status');
-    el.textContent = msg;
+    el.innerHTML = html;
     el.classList.add('visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('visible'), 2200);
+    toastTimer = setTimeout(() => el.classList.remove('visible'), 2800);
+  }
+
+  function friendlyDate(dateStr) {
+    if (!dateStr) return '';
+    const today = localDateStr(0);
+    const tomorrow = localDateStr(1);
+    if (dateStr === today) return 'today';
+    if (dateStr === tomorrow) return 'tomorrow';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function truncate(str, n = 28) {
+    return str.length > n ? str.slice(0, n) + '...' : str;
   }
 
   // ── Board ───────────────────────────────────────────────────────────────
@@ -643,7 +662,7 @@
         const oldDate = task.due_date;
         task.due_date = newDate;
         buildBoard();
-        toast('Moved');
+        toast(`<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${truncate(task.title)}</span>`);
         try {
           await patchTask(draggedId, { due_date: newDate });
           emitEvent(draggedId, 'deferred', oldDate, newDate);
@@ -660,9 +679,11 @@
       btn.addEventListener('click', async e => {
         e.stopPropagation();
         const id = btn.dataset.id;
+        const task = tasks.find(t => t.id === id);
+        const name = task ? truncate(task.title) : '';
         tasks = tasks.filter(t => t.id !== id);
         buildBoard();
-        toast('Done ✓');
+        toast(`<span class="toast-action">✓ Done</span><br><span class="toast-task">${name}</span>`);
         try {
           await patchTask(id, { status: 'done' });
           emitEvent(id, 'status_changed', 'open', 'done');
@@ -675,9 +696,11 @@
       btn.addEventListener('click', async e => {
         e.stopPropagation();
         const id = btn.dataset.id;
+        const task = tasks.find(t => t.id === id);
+        const name = task ? truncate(task.title) : '';
         tasks = tasks.filter(t => t.id !== id);
         buildBoard();
-        toast('Dropped');
+        toast(`<span class="toast-action">Dropped</span><br><span class="toast-task">${name}</span>`);
         try {
           await patchTask(id, { status: 'dropped' });
           emitEvent(id, 'status_changed', 'open', 'dropped');
@@ -696,9 +719,10 @@
         const task = tasks.find(t => t.id === id);
         if (!task || task.due_date === newDate) return;
         const oldDate = task.due_date;
+        const name = truncate(task.title);
         task.due_date = newDate;
         buildBoard();
-        toast('Moved');
+        toast(`<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${name}</span>`);
         try {
           await patchTask(id, { due_date: newDate });
           emitEvent(id, 'deferred', oldDate, newDate);
@@ -745,11 +769,13 @@
   document.getElementById('edit-drop').addEventListener('click', async () => {
     if (!editingId) return;
     const id = editingId;
+    const task = tasks.find(t => t.id === id);
+    const name = task ? truncate(task.title) : '';
     document.getElementById('edit-modal').classList.remove('open');
     editingId = null;
     tasks = tasks.filter(t => t.id !== id);
     buildBoard();
-    toast('Dropped');
+    toast(`<span class="toast-action">Dropped</span><br><span class="toast-task">${name}</span>`);
     try {
       await patchTask(id, { status: 'dropped' });
       emitEvent(id, 'status_changed', 'open', 'dropped');
@@ -787,7 +813,11 @@
     buildBoard();
 
     if (Object.keys(updates).length > 0) {
-      toast('Saved');
+      const changes = [];
+      if (updates.title) changes.push('title');
+      if ('priority' in updates) changes.push(`priority → P${updates.priority}`);
+      if (updates.due_date) changes.push(`date → ${friendlyDate(updates.due_date)}`);
+      toast(`<span class="toast-action">Saved</span> ${changes.join(', ')}<br><span class="toast-task">${truncate(task.title)}</span>`);
       try { await patchTask(task.id, updates); }
       catch { toast('Save failed'); }
     }
