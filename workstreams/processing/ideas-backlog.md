@@ -19,7 +19,7 @@ The execution engine picks from this queue based on expected eval delta.
 -->
 
 ## Kanban PWA for multi-day task overview
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-03-31
 - **Problem statement:** Checking the task landscape requires an LLM round-trip via the CLI every time — multiple times daily. There's no ambient, always-on surface to glance at upcoming days and take quick actions.
 - **Proposed change:** Build a PWA that reads from the existing Supabase backend and renders a Kanban board with columns for today, tomorrow, +2 days, and +3 days. Supports lightweight mutations: complete, reschedule (drag between columns or tap), and delete. Deployed on Vercel, mobile-first. Scope can grow over time to include editing titles/descriptions — but V1 is read + complete/reschedule/delete only.
@@ -27,4 +27,4 @@ The execution engine picks from this queue based on expected eval delta.
 - **Expected delta:** 0.4 — currently no baseline, but this creates the primary surface for landscape visibility
 - **Risks / counterarguments:** Stale reads (CLI mutation not reflected until refresh — mitigate with Supabase real-time or short polling). Scope creep (PWA grows into full editor — mitigate by shipping V1 with only 3 mutations, additional features are separate hypotheses). Maintenance overhead (mitigate with Vercel + Next.js near-zero ops).
 - **Experiment design:** Next.js PWA on Vercel reading from existing `tasks` table. 4 day-columns (today through +3), task cards with title + priority. Actions: tap to complete, swipe/drag to reschedule, long-press to delete. Mobile-first, installable as PWA. Measure: daily opens and actions taken from PWA vs CLI.
-- **Result:** (pending)
+- **Result:** Shipped. Minimal PWA scaffold built in `pwa/index.html` + `pwa/manifest.json`. Single-file vanilla-JS implementation reads from Supabase REST API (or shows demo data when unconfigured). 4-day Kanban columns, drag-to-reschedule, tap-to-complete, delete. Mobile-first. Requires deployment (Vercel or similar) and SB_URL/SB_KEY env injection to activate against live data. No existing tests were regressed. Eval-002 impact pending live usage measurement.
