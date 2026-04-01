@@ -300,15 +300,25 @@
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.2s, transform 0.2s;
-      max-width: 340px;
+      max-width: 380px;
       text-align: center;
       line-height: 1.4;
       box-shadow: var(--shadow);
       z-index: 200;
     }
-    #status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #status.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
     #status .toast-action { font-weight: 600; }
     #status .toast-task { color: var(--text-secondary); }
+    #status .toast-undo {
+      display: inline-block;
+      margin-left: 12px;
+      color: var(--coral);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 2px 0;
+    }
+    #status .toast-undo:hover { text-decoration: underline; }
 
     /* ── Edit Modal ────────────────────────── */
     .modal-overlay {
@@ -554,14 +564,35 @@
   let draggedId = null;
   let editingId = null;
 
-  // ── Toast ───────────────────────────────────────────────────────────────
+  // ── Toast with undo ─────────────────────────────────────────────────────
   let toastTimer;
-  function toast(html) {
+  let pendingUndo = null;
+
+  function toast(html, undoFn) {
     const el = document.getElementById('status');
-    el.innerHTML = html;
+    pendingUndo = null;
+    const undoLink = undoFn ? '<a class="toast-undo" id="toast-undo">Undo</a>' : '';
+    el.innerHTML = html + undoLink;
     el.classList.add('visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('visible'), 2800);
+
+    if (undoFn) {
+      pendingUndo = undoFn;
+      const undoBtn = document.getElementById('toast-undo');
+      if (undoBtn) {
+        undoBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (pendingUndo) { pendingUndo(); pendingUndo = null; }
+          el.classList.remove('visible');
+          clearTimeout(toastTimer);
+        });
+      }
+    }
+
+    toastTimer = setTimeout(() => {
+      el.classList.remove('visible');
+      pendingUndo = null;
+    }, 4000);
   }
 
   function friendlyDate(dateStr) {
@@ -660,12 +691,16 @@
         const task = tasks.find(t => t.id === draggedId);
         if (!task || task.due_date === newDate) return;
         const oldDate = task.due_date;
+        const tid = task.id;
         task.due_date = newDate;
         buildBoard();
-        toast(`<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${truncate(task.title)}</span>`);
+        toast(
+          `<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${truncate(task.title)}</span>`,
+          () => { const t = tasks.find(x => x.id === tid); if (t) { t.due_date = oldDate; buildBoard(); patchTask(tid, { due_date: oldDate }); } }
+        );
         try {
-          await patchTask(draggedId, { due_date: newDate });
-          emitEvent(draggedId, 'deferred', oldDate, newDate);
+          await patchTask(tid, { due_date: newDate });
+          emitEvent(tid, 'deferred', oldDate, newDate);
         } catch {
           toast('Failed — reverting');
           task.due_date = oldDate;
@@ -680,10 +715,14 @@
         e.stopPropagation();
         const id = btn.dataset.id;
         const task = tasks.find(t => t.id === id);
-        const name = task ? truncate(task.title) : '';
+        if (!task) return;
+        const snapshot = { ...task };
         tasks = tasks.filter(t => t.id !== id);
         buildBoard();
-        toast(`<span class="toast-action">✓ Done</span><br><span class="toast-task">${name}</span>`);
+        toast(
+          `<span class="toast-action">✓ Done</span><br><span class="toast-task">${truncate(snapshot.title)}</span>`,
+          () => { tasks.push(snapshot); buildBoard(); patchTask(id, { status: 'open' }); }
+        );
         try {
           await patchTask(id, { status: 'done' });
           emitEvent(id, 'status_changed', 'open', 'done');
@@ -697,10 +736,14 @@
         e.stopPropagation();
         const id = btn.dataset.id;
         const task = tasks.find(t => t.id === id);
-        const name = task ? truncate(task.title) : '';
+        if (!task) return;
+        const snapshot = { ...task };
         tasks = tasks.filter(t => t.id !== id);
         buildBoard();
-        toast(`<span class="toast-action">Dropped</span><br><span class="toast-task">${name}</span>`);
+        toast(
+          `<span class="toast-action">Dropped</span><br><span class="toast-task">${truncate(snapshot.title)}</span>`,
+          () => { tasks.push(snapshot); buildBoard(); patchTask(id, { status: 'open' }); }
+        );
         try {
           await patchTask(id, { status: 'dropped' });
           emitEvent(id, 'status_changed', 'open', 'dropped');
@@ -722,7 +765,10 @@
         const name = truncate(task.title);
         task.due_date = newDate;
         buildBoard();
-        toast(`<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${name}</span>`);
+        toast(
+          `<span class="toast-action">Moved to ${friendlyDate(newDate)}</span><br><span class="toast-task">${name}</span>`,
+          () => { const t = tasks.find(x => x.id === id); if (t) { t.due_date = oldDate; buildBoard(); patchTask(id, { due_date: oldDate }); } }
+        );
         try {
           await patchTask(id, { due_date: newDate });
           emitEvent(id, 'deferred', oldDate, newDate);
@@ -770,12 +816,16 @@
     if (!editingId) return;
     const id = editingId;
     const task = tasks.find(t => t.id === id);
-    const name = task ? truncate(task.title) : '';
+    if (!task) return;
+    const snapshot = { ...task };
     document.getElementById('edit-modal').classList.remove('open');
     editingId = null;
     tasks = tasks.filter(t => t.id !== id);
     buildBoard();
-    toast(`<span class="toast-action">Dropped</span><br><span class="toast-task">${name}</span>`);
+    toast(
+      `<span class="toast-action">Dropped</span><br><span class="toast-task">${truncate(snapshot.title)}</span>`,
+      () => { tasks.push(snapshot); buildBoard(); patchTask(id, { status: 'open' }); }
+    );
     try {
       await patchTask(id, { status: 'dropped' });
       emitEvent(id, 'status_changed', 'open', 'dropped');
