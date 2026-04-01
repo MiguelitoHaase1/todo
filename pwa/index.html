@@ -212,22 +212,50 @@
       border: none;
       color: var(--text-muted);
       border-radius: 6px;
-      width: 26px;
-      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
       cursor: pointer;
       transition: all 0.15s;
       padding: 0;
       flex-shrink: 0;
     }
     .action-btn:hover { color: var(--text); }
-    .action-btn.done-btn { color: var(--border-medium); font-size: 16px; }
-    .action-btn.done-btn:hover { color: var(--success); }
-    .action-btn.edit-btn { font-size: 13px; }
-    .action-btn.edit-btn:hover { color: var(--coral); }
+
+    .done-btn {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border-medium);
+      border-radius: 8px;
+      color: var(--border-medium);
+      font-size: 18px;
+      background: var(--bg);
+    }
+    .done-btn:hover { border-color: var(--success); color: var(--success); background: rgba(90, 158, 111, 0.06); }
+
+    .move-btn {
+      width: 26px;
+      height: 26px;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    .move-btn:hover { color: var(--coral); }
+
+    .drop-x {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      font-size: 13px;
+      color: var(--border-medium);
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .task-card:hover .drop-x { opacity: 1; }
+    .drop-x:hover { color: var(--danger); }
+
+    .task-card { cursor: pointer; }
 
     .empty-state {
       padding: 24px 16px;
@@ -350,6 +378,7 @@
     /* ── Mobile touch ───────────────────────── */
     @media (hover: none) {
       .task-card:hover { transform: none; box-shadow: none; }
+      .drop-x { opacity: 0.6; }
     }
 
     .btn-drop {
@@ -381,6 +410,7 @@
 <div id="board"></div>
 
 <div id="status"></div>
+<input type="date" id="date-picker" style="position:fixed;top:-100px;left:-100px;opacity:0;pointer-events:none;" />
 
 <!-- Edit Modal -->
 <div class="modal-overlay" id="edit-modal">
@@ -545,13 +575,14 @@
     const p = task.priority ?? 3;
     return `
       <div class="task-card" draggable="true" data-id="${task.id}">
+        <button class="action-btn drop-x" title="Drop" data-id="${task.id}">✕</button>
         <div class="task-title">${escHtml(task.title)}</div>
         <div class="task-footer">
           <div class="footer-left">
-            <button class="action-btn edit-btn" title="Edit" data-id="${task.id}">🖊</button>
+            <button class="action-btn move-btn" title="Move date" data-id="${task.id}">→</button>
             <span class="priority-pill pill-p${p}">${PRIORITY_LABELS[p]}</span>
           </div>
-          <button class="action-btn done-btn" title="Done" data-id="${task.id}">☐</button>
+          <button class="action-btn done-btn" title="Done" data-id="${task.id}">✓</button>
         </div>
       </div>
     `;
@@ -616,11 +647,40 @@
       });
     });
 
-    // Edit
-    document.querySelectorAll('.edit-btn').forEach(btn => {
+    // Drop (✕ top right)
+    document.querySelectorAll('.drop-x').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        tasks = tasks.filter(t => t.id !== id);
+        buildBoard();
+        toast('Dropped');
+        try {
+          await patchTask(id, { status: 'dropped' });
+          emitEvent(id, 'status_changed', 'open', 'dropped');
+        } catch { /* best effort */ }
+      });
+    });
+
+    // Move date (→ button opens native date picker)
+    document.querySelectorAll('.move-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        openEditModal(btn.dataset.id);
+        const id = btn.dataset.id;
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+        const picker = document.getElementById('date-picker');
+        picker.value = task.due_date || localDateStr(0);
+        picker.dataset.taskId = id;
+        picker.showPicker();
+      });
+    });
+
+    // Card body click → edit modal
+    document.querySelectorAll('.task-card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('.action-btn')) return;
+        openEditModal(card.dataset.id);
       });
     });
   }
@@ -712,6 +772,28 @@
   }
 
   document.getElementById('refresh-btn').addEventListener('click', loadTasks);
+
+  // Date picker change → reschedule task
+  document.getElementById('date-picker').addEventListener('change', async e => {
+    const picker = e.target;
+    const id = picker.dataset.taskId;
+    const newDate = picker.value;
+    if (!id || !newDate) return;
+    const task = tasks.find(t => t.id === id);
+    if (!task || task.due_date === newDate) return;
+    const oldDate = task.due_date;
+    task.due_date = newDate;
+    buildBoard();
+    toast('Moved');
+    try {
+      await patchTask(id, { due_date: newDate });
+      emitEvent(id, 'deferred', oldDate, newDate);
+    } catch {
+      toast('Failed — reverting');
+      task.due_date = oldDate;
+      buildBoard();
+    }
+  });
   loadTasks();
 
   if ('serviceWorker' in navigator) {
