@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Tasks</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #6b6b6b;
+      --accent: #7c6af7;
+      --p0: #ef4444;
+      --p1: #f97316;
+      --p2: #eab308;
+      --p3: #6b7280;
+      --p4: #374151;
+      --success: #22c55e;
+      --col-width: min(280px, 85vw);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100dvh;
+      overflow-x: auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    #refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #refresh-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    #board {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      min-height: calc(100dvh - 57px);
+      align-items: flex-start;
+    }
+
+    .column {
+      flex: 0 0 var(--col-width);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .col-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .col-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .col-date {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .col-count {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--border);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
+
+    .col-tasks {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 60px;
+    }
+
+    .col-tasks.drag-over {
+      background: rgba(124, 106, 247, 0.06);
+      border-radius: 8px;
+    }
+
+    .task-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: grab;
+      position: relative;
+      user-select: none;
+      transition: transform 0.1s, opacity 0.1s, border-color 0.15s;
+    }
+
+    .task-card:active { cursor: grabbing; }
+    .task-card.dragging { opacity: 0.4; transform: scale(0.97); }
+    .task-card:hover { border-color: var(--muted); }
+
+    .task-title {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .priority-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .p0 { background: var(--p0); }
+    .p1 { background: var(--p1); }
+    .p2 { background: var(--p2); }
+    .p3 { background: var(--p3); }
+    .p4 { background: var(--p4); }
+
+    .priority-label {
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .p0 .priority-label, .task-card.p0 .priority-label { color: var(--p0); }
+    .p1 .priority-label, .task-card.p1 .priority-label { color: var(--p1); }
+    .p2 .priority-label, .task-card.p2 .priority-label { color: var(--p2); }
+    .p3 .priority-label, .task-card.p3 .priority-label { color: var(--p3); }
+    .p4 .priority-label, .task-card.p4 .priority-label { color: var(--p4); }
+
+    .task-actions {
+      display: none;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      gap: 4px;
+    }
+
+    .task-card:hover .task-actions { display: flex; }
+
+    .action-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 5px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .action-btn:hover { color: var(--text); border-color: var(--muted); }
+    .action-btn.done-btn:hover { color: var(--success); border-color: var(--success); }
+    .action-btn.delete-btn:hover { color: var(--p0); border-color: var(--p0); }
+
+    .empty-state {
+      padding: 20px 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    #status {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+      z-index: 200;
+    }
+    #status.visible { opacity: 1; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Tasks</h1>
+  <button id="refresh-btn">↻ Refresh</button>
+</header>
+
+<div id="board"></div>
+
+<div id="status"></div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────────
+  // Set these before deploying. In production, inject via a build step or
+  // a server-side template so the key is never hard-coded in source control.
+  const SB_URL = window.__SB_URL__ || '';
+  const SB_KEY = window.__SB_KEY__ || '';
+
+  const PRIORITY_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4'];
+  const PRIORITY_CLASSES = ['p0', 'p1', 'p2', 'p3', 'p4'];
+
+  // ── Dates ─────────────────────────────────────────────────────────────────
+  function localDateStr(offset = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function colLabel(offset) {
+    const labels = ['Today', 'Tomorrow', '+2 days', '+3 days'];
+    return labels[offset] || `+${offset} days`;
+  }
+
+  function formatDate(offset) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  // ── Supabase helpers ──────────────────────────────────────────────────────
+  function sbHeaders() {
+    return {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    };
+  }
+
+  async function fetchTasks() {
+    if (!SB_URL || !SB_KEY) return DEMO_TASKS;
+
+    // Fetch open tasks with due_date in today..today+3
+    const from = localDateStr(0);
+    const to = localDateStr(3);
+    const res = await fetch(
+      `${SB_URL}/rest/v1/tasks?select=*&status=eq.open&due_date=gte.${from}&due_date=lte.${to}&order=priority.asc,created_at.asc`,
+      { headers: sbHeaders() }
+    );
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+    return res.json();
+  }
+
+  async function markDone(taskId) {
+    if (!SB_URL || !SB_KEY) return;
+    const res = await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: sbHeaders(),
+      body: JSON.stringify({ status: 'done', updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+  }
+
+  async function reschedule(taskId, newDate) {
+    if (!SB_URL || !SB_KEY) return;
+    const res = await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: sbHeaders(),
+      body: JSON.stringify({ due_date: newDate, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`Reschedule failed: ${res.status}`);
+  }
+
+  async function deleteTask(taskId) {
+    if (!SB_URL || !SB_KEY) return;
+    const res = await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'DELETE',
+      headers: sbHeaders(),
+    });
+    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+  }
+
+  // ── Demo data (shown when SB_URL/SB_KEY are not configured) ──────────────
+  const DEMO_TASKS = [
+    { id: 'demo-1', title: 'Review Q2 roadmap', priority: 0, due_date: localDateStr(0), status: 'open' },
+    { id: 'demo-2', title: 'Write experiment log', priority: 1, due_date: localDateStr(0), status: 'open' },
+    { id: 'demo-3', title: 'Ship kanban PWA', priority: 1, due_date: localDateStr(0), status: 'open' },
+    { id: 'demo-4', title: 'Update strategies doc', priority: 2, due_date: localDateStr(1), status: 'open' },
+    { id: 'demo-5', title: 'Call with advisor', priority: 0, due_date: localDateStr(1), status: 'open' },
+    { id: 'demo-6', title: 'Draft investor update', priority: 2, due_date: localDateStr(2), status: 'open' },
+    { id: 'demo-7', title: 'Review product metrics', priority: 3, due_date: localDateStr(3), status: 'open' },
+  ];
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let tasks = [];
+  let draggedId = null;
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('visible'), 2200);
+  }
+
+  // ── Board render ──────────────────────────────────────────────────────────
+  function buildBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+
+    for (let offset = 0; offset < 4; offset++) {
+      const dateStr = localDateStr(offset);
+      const colTasks = tasks.filter(t => t.due_date === dateStr);
+
+      const col = document.createElement('div');
+      col.className = 'column';
+      col.dataset.date = dateStr;
+
+      col.innerHTML = `
+        <div class="col-header">
+          <div>
+            <div class="col-title">${colLabel(offset)}</div>
+            <div class="col-date">${formatDate(offset)}</div>
+          </div>
+          <span class="col-count">${colTasks.length}</span>
+        </div>
+        <div class="col-tasks" data-date="${dateStr}">
+          ${colTasks.length === 0 ? '<div class="empty-state">No tasks</div>' : colTasks.map(taskCard).join('')}
+        </div>
+      `;
+
+      board.appendChild(col);
+    }
+
+    attachDragListeners();
+  }
+
+  function taskCard(task) {
+    const pClass = PRIORITY_CLASSES[task.priority] || 'p4';
+    const pLabel = PRIORITY_LABELS[task.priority] || 'P4';
+    return `
+      <div class="task-card ${pClass}" draggable="true" data-id="${task.id}">
+        <div class="task-title">${escHtml(task.title)}</div>
+        <div class="task-meta">
+          <span class="priority-dot ${pClass}"></span>
+          <span class="priority-label">${pLabel}</span>
+        </div>
+        <div class="task-actions">
+          <button class="action-btn done-btn" title="Mark done" data-id="${task.id}">✓</button>
+          <button class="action-btn delete-btn" title="Delete" data-id="${task.id}">✕</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Drag & drop (reschedule) ──────────────────────────────────────────────
+  function attachDragListeners() {
+    document.querySelectorAll('.task-card[draggable]').forEach(card => {
+      card.addEventListener('dragstart', e => {
+        draggedId = card.dataset.id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedId = null;
+      });
+    });
+
+    document.querySelectorAll('.col-tasks').forEach(zone => {
+      zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.classList.add('drag-over');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', async e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        if (!draggedId) return;
+
+        const newDate = zone.dataset.date;
+        const task = tasks.find(t => t.id === draggedId);
+        if (!task || task.due_date === newDate) return;
+
+        const oldDate = task.due_date;
+        task.due_date = newDate;
+        buildBoard();
+        toast('Rescheduled');
+
+        try {
+          await reschedule(draggedId, newDate);
+        } catch (err) {
+          toast('Failed to reschedule — reverting');
+          task.due_date = oldDate;
+          buildBoard();
+        }
+      });
+    });
+
+    // Action buttons
+    document.querySelectorAll('.done-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        tasks = tasks.filter(t => t.id !== id);
+        buildBoard();
+        toast('Done ✓');
+        try { await markDone(id); } catch { /* best-effort */ }
+      });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        tasks = tasks.filter(t => t.id !== id);
+        buildBoard();
+        toast('Deleted');
+        try { await deleteTask(id); } catch { /* best-effort */ }
+      });
+    });
+  }
+
+  // ── Load ──────────────────────────────────────────────────────────────────
+  async function loadTasks() {
+    try {
+      tasks = await fetchTasks();
+      buildBoard();
+      if (!SB_URL) toast('Demo mode — configure SB_URL + SB_KEY to connect');
+    } catch (err) {
+      toast('Error loading tasks');
+      console.error(err);
+    }
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', loadTasks);
+
+  loadTasks();
+
+  // ── PWA service worker ────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {/* optional */});
+  }
+</script>
+
+</body>
+</html>
