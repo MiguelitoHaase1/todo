@@ -1,4 +1,4 @@
-import { sbSelect, sbUpdate, type Task } from "../supabase.ts";
+import { sbSelect, sbUpdate, emitTaskEvent, type Task } from "../supabase.ts";
 import { priorityLabel, formatDate } from "../format.ts";
 
 export interface TriageItem {
@@ -143,14 +143,34 @@ export async function executeTriageActions(
       writes.map((op) => {
         switch (op.action) {
           case "drop":
-            return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { status: "done" });
+            return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { status: "dropped" });
           case "defer":
             return sbUpdate("tasks", `id=eq.${op.item.task.id}`, { due_date: nextWeekStr });
         }
       }),
     );
     for (let i = 0; i < results.length; i++) {
-      if (results[i].status === "fulfilled") succeeded.add(writes[i].item.task.id);
+      if (results[i].status === "fulfilled") {
+        succeeded.add(writes[i].item.task.id);
+        const op = writes[i];
+        if (op.action === "drop") {
+          emitTaskEvent({
+            task_id: op.item.task.id,
+            event_type: "status_changed",
+            previous_value: op.item.task.status,
+            new_value: "dropped",
+            source: "triage",
+          });
+        } else if (op.action === "defer") {
+          emitTaskEvent({
+            task_id: op.item.task.id,
+            event_type: "deferred",
+            previous_value: op.item.task.due_date ?? "none",
+            new_value: nextWeekStr,
+            source: "triage",
+          });
+        }
+      }
     }
   }
 

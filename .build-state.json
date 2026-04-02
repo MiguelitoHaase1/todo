@@ -6,7 +6,7 @@
     "evals": "evals.json",
     "beadsDb": ".beads/"
   },
-  "sessionCount": 3,
+  "sessionCount": 5,
   "currentSession": null,
   "completedSessions": [
     {
@@ -35,6 +35,24 @@
       "evalsAfter": {},
       "outcome": "closed",
       "report": ".build-sessions/session-003.md"
+    },
+    {
+      "number": 4,
+      "taskId": "AI-8l2",
+      "taskTitle": "CLI core (td add, td list, td done, td show)",
+      "evalsBefore": {},
+      "evalsAfter": {},
+      "outcome": "closed",
+      "report": ".build-sessions/session-004.md"
+    },
+    {
+      "number": 5,
+      "taskId": "AI-6rq",
+      "taskTitle": "iMessage bridge for task capture",
+      "evalsBefore": {},
+      "evalsAfter": {},
+      "outcome": "closed",
+      "report": ".build-sessions/session-005.md"
     }
   ],
   "evalBaselines": {
@@ -46,6 +64,18 @@
     "guard-001": { "score": null, "measuredAt": null }
   },
   "techDecisions": [
+    {
+      "decision": "Claude IS the iMessage handler — CLAUDE.md instructs Claude to parse tasks and call Supabase directly. No standalone daemon.",
+      "rationale": "iMessage MCP plugin delivers messages as channel notifications. An active Claude session handles the full loop: parse → insert → reply. Simpler than a separate service.",
+      "sessionNumber": 5,
+      "taskId": "AI-6rq"
+    },
+    {
+      "decision": "No SDK, direct fetch to Supabase REST. Short-ID prefix matching via client-side filter.",
+      "rationale": "PostgREST can't LIKE on UUID columns. With ~100 tasks, client-side filter is fast enough.",
+      "sessionNumber": 4,
+      "taskId": "AI-8l2"
+    },
     {
       "decision": "Supabase Postgres on shared instance (xwxsrsybllifbivhgojl) with Morning Brew",
       "rationale": "Strategy requires shared instance. REST API access via publishable key. No SDK.",
@@ -72,5 +102,5 @@
     }
   ],
   "knownIssues": [],
-  "lastUpdated": "2026-03-27T08:30:00Z"
+  "lastUpdated": "2026-03-27T09:30:00Z"
 }
