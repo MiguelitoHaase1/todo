@@ -17,3 +17,25 @@ The execution engine picks from this queue based on expected eval delta.
 - **Result:** (filled after experiment runs)
 
 -->
+
+## One message = one task by default
+- **Status:** queued
+- **Date added:** 2026-04-02
+- **Problem statement:** Single-task messages frequently get parsed into 2+ tasks with different titles and priorities. The /todo skill over-interprets conversational phrasing (e.g. "do X before starting at Y") as multiple intents, creating ghost tasks that erode trust in capture.
+- **Proposed change:** Add explicit guardrail to the /todo skill's task capture section: one inbound message always produces exactly one task, unless the user explicitly signals multiple (e.g. "add two tasks:", "three things:", numbered lists, or comma-separated "X and Y and Z"). When in doubt, default to one task with the full message as the title.
+- **Target eval(s):** eval-001 (capture a task instantly)
+- **Expected delta:** +0.15 — every false split is a direct trust hit; fixing this removes a recurring source of capture friction
+- **Risks / counterarguments:** May under-split when the user genuinely wants multiple tasks from one message. Mitigated by explicit signal detection ("add two tasks", numbered lists). If under-splitting becomes a problem, can widen the signals later.
+- **Experiment design:** Update the /todo skill's task capture instructions with the one-message-one-task guardrail. Test with 10 real message patterns: 5 conversational single-task messages (should produce 1 task each), 3 explicit multi-task messages (should produce N tasks), 2 ambiguous edge cases (should default to 1). Pass = 10/10 correct count.
+- **Result:**
+
+## Deduplicate task capture via source message ID
+- **Status:** queued
+- **Date added:** 2026-04-02
+- **Problem statement:** Multiple Claude Code sessions listen to the same Discord channel simultaneously. When a task message arrives, each session processes it independently — creating duplicate tasks with different titles, different priorities, and different phrasings. This generates cleanup work and erodes trust in capture. Observed on 5+ occasions in the last 48 hours.
+- **Proposed change:** Add a `source_message_id` column (unique constraint) to the `tasks` table. When creating a task from Discord or iMessage, include the platform's message ID. If a second session attempts to create from the same message, the unique violation is caught and handled as a silent no-op (no error reply to the user, no duplicate created).
+- **Target eval(s):** eval-001 (capture a task instantly)
+- **Expected delta:** +0.30 — eliminates an entire class of data quality issues (multi-session duplication) without requiring session coordination
+- **Risks / counterarguments:** The second session may show an error to the user if the conflict isn't handled gracefully. Mitigation: use Supabase upsert with `on_conflict=source_message_id` and `ignoreDuplicates=true`, so the second POST silently succeeds without inserting. Edge case: if the user genuinely wants two tasks from one message, they should send two messages.
+- **Experiment design:** (1) Add migration: `ALTER TABLE tasks ADD COLUMN source_message_id TEXT UNIQUE`. (2) Update /todo SKILL.md capture logic to include message ID on every create. (3) Handle 409/conflict as no-op. (4) Test: send a message with two sessions active — verify exactly 1 task created. Pass = 0 duplicates across 5 test messages.
+- **Result:**
