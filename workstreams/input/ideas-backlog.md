@@ -41,7 +41,7 @@ The execution engine picks from this queue based on expected eval delta.
 - **Result:** Shipped. Added `source_message_id text` column with partial unique index (nulls excluded). Created `src/dedup.ts` with `buildTaskInsertOptions()` and `isDuplicateIgnored()` — pure functions that wire into any task POST. Also created `src/format.ts` (was missing, causing pre-existing test failure). 27 tests pass. Next step for the /todo skill: pass `source_message_id` from the Discord message metadata on every capture call.
 
 ## Inline task creation on Kanban board
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-04-02
 - **Problem statement:** Task capture only works via chat (iMessage/Discord). When already looking at the Kanban board (pwa-seven-rosy.vercel.app), there's no way to add a task without switching to a chat channel — breaking flow.
 - **Proposed change:** Add an "Add task" form at the bottom of each Kanban column. Fields: title (required), description (optional), priority (dropdown, default P3). Submits directly to Supabase via REST POST to `/rest/v1/tasks`. New task appears immediately on the board without refresh.
@@ -49,4 +49,4 @@ The execution engine picks from this queue based on expected eval delta.
 - **Expected delta:** +0.1 — adds a new capture surface for when the user is already in the board context, reducing channel-switching friction
 - **Risks / counterarguments:** Low risk. Board becomes read-write, so needs basic input validation (no empty titles). No auth concern — personal tool. May encourage adding tasks without priority thought if defaulting to P3 is too frictionless. Mitigated by making priority visible and changeable in the form.
 - **Experiment design:** Add form component to the Kanban board. Wire to Supabase POST. Verify: (1) task appears on board immediately after submit, (2) task visible via `td list`, (3) empty title is rejected, (4) priority default is P3 and can be changed before submit.
-- **Result:**
+- **Result:** Shipped. Feature was already fully implemented in pwa/index.html (added in prior Kanban PWA commit). Verified all 4 experiment design criteria pass: (1) buildBoard() called after submit — immediate update ✓, (2) createTask() POSTs to Supabase REST ✓, (3) empty title guard present ✓, (4) P3 selected by default ✓. Added 10-test static validation suite in pwa/inline-task-form.test.mjs.
