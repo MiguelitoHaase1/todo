@@ -180,6 +180,12 @@
       line-height: 1.4;
     }
 
+    .desc-indicator {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+
     .priority-pill {
       font-size: 11px;
       font-weight: 600;
@@ -327,18 +333,19 @@
       inset: 0;
       background: rgba(26, 26, 26, 0.4);
       z-index: 300;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
+      padding: 20px;
     }
     .modal-overlay.open { display: flex; }
 
     .modal {
       background: var(--surface);
-      border-radius: 16px 16px 0 0;
+      border-radius: var(--radius-md);
       width: 100%;
-      max-width: 480px;
-      padding: 24px 20px 32px;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+      max-width: 560px;
+      padding: 28px 24px 32px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
     }
 
     .modal h2 {
@@ -361,7 +368,7 @@
       margin-bottom: 6px;
     }
 
-    .field input, .field select {
+    .field input, .field select, .field textarea {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
@@ -373,7 +380,13 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    .field input:focus, .field select:focus { border-color: var(--coral); }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--coral); }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+    }
 
     .modal-actions {
       display: flex;
@@ -405,6 +418,103 @@
       color: white;
     }
     .btn-save:hover { background: var(--coral-hover); }
+
+    /* ── Add Task Form ─────────────────────── */
+    .add-task-trigger {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      margin: 4px 10px 12px;
+      border: 1px dashed var(--border-medium);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: calc(100% - 20px);
+    }
+    .add-task-trigger:hover {
+      border-color: var(--coral);
+      color: var(--coral);
+      background: var(--coral-light);
+    }
+
+    .add-task-form {
+      display: none;
+      padding: 4px 10px 12px;
+    }
+    .add-task-form.open { display: block; }
+
+    .add-task-form .add-card {
+      background: var(--surface);
+      border: 1px solid var(--coral);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+
+    .add-task-form .add-title {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: transparent;
+      margin-bottom: 10px;
+      resize: none;
+      line-height: 1.4;
+    }
+    .add-task-form .add-title::placeholder { color: var(--text-muted); }
+
+    .add-task-form .add-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-task-form .add-priority {
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      cursor: pointer;
+    }
+
+    .add-task-form .add-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .add-task-form .add-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .add-btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .add-btn-cancel:hover { border-color: var(--border-medium); }
+
+    .add-btn-save {
+      background: var(--coral);
+      border: 1px solid var(--coral);
+      color: white;
+    }
+    .add-btn-save:hover { background: var(--coral-hover); }
 
     /* ── Scrollbar ──────────────────────────── */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -454,6 +564,10 @@
     <div class="field">
       <label>Title</label>
       <input type="text" id="edit-title" />
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea id="edit-description" placeholder="Add notes or details..."></textarea>
     </div>
     <div class="field">
       <label>Priority</label>
@@ -531,6 +645,19 @@
       body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() }),
     });
     if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+  }
+
+  async function createTask({ title, priority = 3, due_date, description = null }) {
+    if (!SB_URL || !SB_KEY) return null;
+    const res = await fetch(`${SB_URL}/rest/v1/tasks`, {
+      method: 'POST',
+      headers: sbHeaders(),
+      body: JSON.stringify({ title, priority, due_date, description, status: 'open' }),
+    });
+    if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+    const [created] = await res.json();
+    emitEvent(created.id, 'created', null, `P${priority}`);
+    return created;
   }
 
   async function emitEvent(taskId, eventType, prev, next) {
@@ -634,6 +761,25 @@
             ? '<div class="empty-state">No tasks</div>'
             : colTasks.map(taskCard).join('')}
         </div>
+        <button class="add-task-trigger" data-date="${dateStr}">+ Add task</button>
+        <div class="add-task-form" data-date="${dateStr}">
+          <div class="add-card">
+            <input type="text" class="add-title" data-date="${dateStr}" placeholder="Task title..." />
+            <div class="add-row">
+              <select class="add-priority" data-date="${dateStr}">
+                <option value="0">P0</option>
+                <option value="1">P1</option>
+                <option value="2">P2</option>
+                <option value="3" selected>P3</option>
+                <option value="4">P4</option>
+              </select>
+              <div class="add-actions">
+                <button class="add-btn add-btn-cancel" data-date="${dateStr}">Cancel</button>
+                <button class="add-btn add-btn-save" data-date="${dateStr}">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
       `;
       board.appendChild(col);
     }
@@ -643,10 +789,11 @@
 
   function taskCard(task) {
     const p = task.priority ?? 3;
+    const hasDesc = task.description ? '<span class="desc-indicator" title="Has description">✎</span>' : '';
     return `
       <div class="task-card" draggable="true" data-id="${task.id}">
         <button class="action-btn drop-x" title="Drop" data-id="${task.id}">✕</button>
-        <div class="task-title">${escHtml(task.title)}</div>
+        <div class="task-title">${escHtml(task.title)} ${hasDesc}</div>
         <div class="task-footer">
           <div class="footer-left">
             <div class="move-wrap">
@@ -787,6 +934,78 @@
         openEditModal(card.dataset.id);
       });
     });
+
+    // Add task — trigger button
+    document.querySelectorAll('.add-task-trigger').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const date = btn.dataset.date;
+        btn.style.display = 'none';
+        const form = document.querySelector(`.add-task-form[data-date="${date}"]`);
+        form.classList.add('open');
+        form.querySelector('.add-title').focus();
+      });
+    });
+
+    // Add task — cancel
+    document.querySelectorAll('.add-btn-cancel').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const date = btn.dataset.date;
+        const form = document.querySelector(`.add-task-form[data-date="${date}"]`);
+        form.classList.remove('open');
+        form.querySelector('.add-title').value = '';
+        form.querySelector('.add-priority').value = '3';
+        document.querySelector(`.add-task-trigger[data-date="${date}"]`).style.display = '';
+      });
+    });
+
+    // Add task — save
+    document.querySelectorAll('.add-btn-save').forEach(btn => {
+      btn.addEventListener('click', () => submitAddTask(btn.dataset.date));
+    });
+
+    // Add task — Enter key
+    document.querySelectorAll('.add-title').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); submitAddTask(input.dataset.date); }
+        if (e.key === 'Escape') {
+          const date = input.dataset.date;
+          const form = document.querySelector(`.add-task-form[data-date="${date}"]`);
+          form.classList.remove('open');
+          input.value = '';
+          document.querySelector(`.add-task-trigger[data-date="${date}"]`).style.display = '';
+        }
+      });
+    });
+  }
+
+  // ── Add Task Submit ─────────────────────────────────────────────────────
+  async function submitAddTask(date) {
+    const form = document.querySelector(`.add-task-form[data-date="${date}"]`);
+    const titleInput = form.querySelector('.add-title');
+    const prioritySelect = form.querySelector('.add-priority');
+    const title = titleInput.value.trim();
+    if (!title) { titleInput.focus(); return; }
+
+    const priority = parseInt(prioritySelect.value);
+    const saveBtn = form.querySelector('.add-btn-save');
+    saveBtn.textContent = '...';
+    saveBtn.disabled = true;
+
+    try {
+      const created = await createTask({ title, priority, due_date: date });
+      if (created) {
+        tasks.push(created);
+      } else {
+        tasks.push({ id: 'local-' + Date.now(), title, priority, due_date: date, status: 'open' });
+      }
+      buildBoard();
+      toast(`<span class="toast-action">+ Added</span><br><span class="toast-task">${truncate(title)}</span>`);
+    } catch (err) {
+      console.error(err);
+      toast('Failed to add task');
+      saveBtn.textContent = 'Add';
+      saveBtn.disabled = false;
+    }
   }
 
   // ── Edit Modal ──────────────────────────────────────────────────────────
@@ -795,6 +1014,7 @@
     if (!task) return;
     editingId = taskId;
     document.getElementById('edit-title').value = task.title;
+    document.getElementById('edit-description').value = task.description || '';
     document.getElementById('edit-priority').value = task.priority ?? 3;
     document.getElementById('edit-date').value = task.due_date || '';
     document.getElementById('edit-modal').classList.add('open');
@@ -838,6 +1058,7 @@
     if (!task) return;
 
     const newTitle = document.getElementById('edit-title').value.trim();
+    const newDesc = document.getElementById('edit-description').value.trim() || null;
     const newPriority = parseInt(document.getElementById('edit-priority').value);
     const newDate = document.getElementById('edit-date').value;
 
@@ -846,6 +1067,11 @@
       updates.title = newTitle;
       emitEvent(editingId, 'title_changed', task.title, newTitle);
       task.title = newTitle;
+    }
+    const oldDesc = task.description || null;
+    if (newDesc !== oldDesc) {
+      updates.description = newDesc;
+      task.description = newDesc;
     }
     if (newPriority !== task.priority) {
       emitEvent(editingId, 'priority_changed', String(task.priority), String(newPriority));
@@ -865,6 +1091,7 @@
     if (Object.keys(updates).length > 0) {
       const changes = [];
       if (updates.title) changes.push('title');
+      if ('description' in updates) changes.push('description');
       if ('priority' in updates) changes.push(`priority → P${updates.priority}`);
       if (updates.due_date) changes.push(`date → ${friendlyDate(updates.due_date)}`);
       toast(`<span class="toast-action">Saved</span> ${changes.join(', ')}<br><span class="toast-task">${truncate(task.title)}</span>`);
