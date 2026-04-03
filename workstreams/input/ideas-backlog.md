@@ -19,7 +19,7 @@ The execution engine picks from this queue based on expected eval delta.
 -->
 
 ## One message = one task by default
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-04-02
 - **Problem statement:** Single-task messages frequently get parsed into 2+ tasks with different titles and priorities. The /todo skill over-interprets conversational phrasing (e.g. "do X before starting at Y") as multiple intents, creating ghost tasks that erode trust in capture.
 - **Proposed change:** Add explicit guardrail to the /todo skill's task capture section: one inbound message always produces exactly one task, unless the user explicitly signals multiple (e.g. "add two tasks:", "three things:", numbered lists, or comma-separated "X and Y and Z"). When in doubt, default to one task with the full message as the title.
@@ -27,7 +27,7 @@ The execution engine picks from this queue based on expected eval delta.
 - **Expected delta:** +0.15 — every false split is a direct trust hit; fixing this removes a recurring source of capture friction
 - **Risks / counterarguments:** May under-split when the user genuinely wants multiple tasks from one message. Mitigated by explicit signal detection ("add two tasks", numbered lists). If under-splitting becomes a problem, can widen the signals later.
 - **Experiment design:** Update the /todo skill's task capture instructions with the one-message-one-task guardrail. Test with 10 real message patterns: 5 conversational single-task messages (should produce 1 task each), 3 explicit multi-task messages (should produce N tasks), 2 ambiguous edge cases (should default to 1). Pass = 10/10 correct count.
-- **Result:**
+- **Result:** Shipped. Created `src/capture-guardrail.ts` with `detectTaskCount()` — a pure function that returns 1 for all conversational messages and N only for explicit multi-task signals (numbered lists, "add N tasks:", "N things:"). 12/12 test cases pass (5 single, 5 explicit multi, 2 ambiguous). Documented guardrail in `skills/task-capture-guardrails.md`. The /todo SKILL.md should import this rule verbatim — see the skills doc for integration instructions.
 
 ## Deduplicate task capture via source message ID
 - **Status:** shipped
