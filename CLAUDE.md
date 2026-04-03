@@ -60,7 +60,7 @@ When a message arrives from a `#improve-*` channel, determine the workstream fro
 3. **Read `workstreams/<slug>/.claude/CLAUDE.md`** for the full agent wiring (sparring flow, graduation, experiment workflow)
 4. **Read `evals.json`** for eval definitions (reference by ID only — never copy content into the thread)
 5. **Follow the sparring flow** defined in the workstream's CLAUDE.md
-6. **Graduate hypotheses** to `workstreams/<slug>/ideas-backlog.md` when the builder signals
+6. **Graduate hypotheses** to Supabase `hypotheses` table when the builder signals (see workstream CLAUDE.md for curl commands)
 
 ### Mode: Capture (default)
 
@@ -68,4 +68,4 @@ Every Discord message is a potential improvement idea. Spar with the builder to 
 
 ### Mode: Execute (when told "run experiments" or scheduled)
 
-Pick the top queued hypothesis from any workstream's `ideas-backlog.md`, branch into a worktree, implement, measure eval deltas, ship or reject. See the workstream CLAUDE.md for full protocol.
+Pick the top queued hypothesis from Supabase (`hypotheses` table, `product=todolist`), branch into a worktree, implement, measure eval deltas, ship or reject. See the workstream CLAUDE.md for full protocol and curl commands.
