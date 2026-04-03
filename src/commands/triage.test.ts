@@ -13,6 +13,7 @@ function mockTask(overrides?: Partial<Task>): Task {
     due_date: null,
     description: null,
     todoist_id: null,
+    source_message_id: null,
     created_at: "2026-03-20T00:00:00Z",
     updated_at: "2026-03-20T00:00:00Z",
     ...overrides,

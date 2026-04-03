@@ -114,6 +114,7 @@ export interface Task {
   status: string;
   due_date: string | null;
   todoist_id: string | null;
+  source_message_id: string | null;
   created_at: string;
   updated_at: string;
 }

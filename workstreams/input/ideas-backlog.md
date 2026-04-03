@@ -30,7 +30,7 @@ The execution engine picks from this queue based on expected eval delta.
 - **Result:**
 
 ## Deduplicate task capture via source message ID
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-04-02
 - **Problem statement:** Multiple Claude Code sessions listen to the same Discord channel simultaneously. When a task message arrives, each session processes it independently — creating duplicate tasks with different titles, different priorities, and different phrasings. This generates cleanup work and erodes trust in capture. Observed on 5+ occasions in the last 48 hours.
 - **Proposed change:** Add a `source_message_id` column (unique constraint) to the `tasks` table. When creating a task from Discord or iMessage, include the platform's message ID. If a second session attempts to create from the same message, the unique violation is caught and handled as a silent no-op (no error reply to the user, no duplicate created).
@@ -38,4 +38,4 @@ The execution engine picks from this queue based on expected eval delta.
 - **Expected delta:** +0.30 — eliminates an entire class of data quality issues (multi-session duplication) without requiring session coordination
 - **Risks / counterarguments:** The second session may show an error to the user if the conflict isn't handled gracefully. Mitigation: use Supabase upsert with `on_conflict=source_message_id` and `ignoreDuplicates=true`, so the second POST silently succeeds without inserting. Edge case: if the user genuinely wants two tasks from one message, they should send two messages.
 - **Experiment design:** (1) Add migration: `ALTER TABLE tasks ADD COLUMN source_message_id TEXT UNIQUE`. (2) Update /todo SKILL.md capture logic to include message ID on every create. (3) Handle 409/conflict as no-op. (4) Test: send a message with two sessions active — verify exactly 1 task created. Pass = 0 duplicates across 5 test messages.
-- **Result:**
+- **Result:** Shipped. Added `source_message_id text` column with partial unique index (nulls excluded). Created `src/dedup.ts` with `buildTaskInsertOptions()` and `isDuplicateIgnored()` — pure functions that wire into any task POST. Also created `src/format.ts` (was missing, causing pre-existing test failure). 27 tests pass. Next step for the /todo skill: pass `source_message_id` from the Discord message metadata on every capture call.
