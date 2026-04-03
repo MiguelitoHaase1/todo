@@ -14,7 +14,7 @@ Structured hypotheses for improving the planning system. Consumed by the continu
 - **Result:** Shipped. Added `deferral_count int NOT NULL DEFAULT 0` column via migration. Created `src/deferral.ts` with `shouldEscalateDeferral()`, `escalationMessage()`, `markDeferred()`, `filterEscalationCandidates()` — all pure functions, 12/12 tests pass. Updated `Task` interface in `supabase.ts`. Updated `skills/morning.md` with deferral escalation guidance in the deferred-tasks section: surfaces "drop or promote?" at threshold ≥ 2, caps at 3 prompts per session, routes "drop"/"promote"/"keep" to explicit actions. 7/7 chief-of-staff tests pass, no regressions.
 
 ## Midday priority check-in
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-03-30
 - **Problem statement:** Priority drift happens mid-day and isn't caught until the evening recap. By then, 4+ hours of misdirected work may have passed.
 - **Proposed change:** Send a brief iMessage at 13:00 asking "Still on track with [priority]?" If user says no, offer to re-triage the afternoon.
@@ -22,7 +22,7 @@ Structured hypotheses for improving the planning system. Consumed by the continu
 - **Expected delta:** ps-001: +0.10
 - **Risks / counterarguments:** Could be annoying. Must be easy to dismiss ("yes" = one word, done). If user ignores it 3x in a row, auto-disable for a week.
 - **Experiment design:** Add a scheduled iMessage check-in to the plan-tomorrow flow (opt-in). Measure ps-001 before/after over 2 weeks.
-- **Result:**
+- **Result:** Shipped. Created `src/checkin.ts` with `buildCheckinMessage()`, `shouldAutoDisable()`, `buildOptInPrompt()` — pure functions, 9/9 tests pass. Updated morning.md Step 12 to offer opt-in check-in at plan approval. Auto-disables at streak ≥ 3. Package.json test script now runs all test files (16/16 pass, no regressions).
 
 ## Auto-batch related tasks
 - **Status:** queued
