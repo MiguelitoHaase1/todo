@@ -115,6 +115,8 @@ export interface Task {
   due_date: string | null;
   todoist_id: string | null;
   source_message_id: string | null;
+  /** Times this task has been deferred. Escalates to "drop or promote?" at 2+. */
+  deferral_count: number;
   created_at: string;
   updated_at: string;
 }

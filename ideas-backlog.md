@@ -3,7 +3,7 @@
 Structured hypotheses for improving the planning system. Consumed by the continuous improvement loop.
 
 ## Smart deferral suggestions
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-03-30
 - **Problem statement:** Tasks deferred 2+ times sit in limbo — they keep getting pushed without a conscious decision to drop or promote them.
 - **Proposed change:** When a task hits 2 deferrals, the plan-tomorrow flow suggests "drop or promote?" instead of silently re-deferring.
@@ -11,7 +11,7 @@ Structured hypotheses for improving the planning system. Consumed by the continu
 - **Expected delta:** ps-006: +0.15, ps-004: +0.05
 - **Risks / counterarguments:** Could feel nagging if the user genuinely wants to defer. Mitigate by only suggesting once per task per planning session.
 - **Experiment design:** Lower deferral threshold from 3 to 2 in plan-tomorrow Step 1 carry-over logic. Measure ps-006 before/after over 2 weeks.
-- **Result:**
+- **Result:** Shipped. Added `deferral_count int NOT NULL DEFAULT 0` column via migration. Created `src/deferral.ts` with `shouldEscalateDeferral()`, `escalationMessage()`, `markDeferred()`, `filterEscalationCandidates()` — all pure functions, 12/12 tests pass. Updated `Task` interface in `supabase.ts`. Updated `skills/morning.md` with deferral escalation guidance in the deferred-tasks section: surfaces "drop or promote?" at threshold ≥ 2, caps at 3 prompts per session, routes "drop"/"promote"/"keep" to explicit actions. 7/7 chief-of-staff tests pass, no regressions.
 
 ## Midday priority check-in
 - **Status:** queued
