@@ -25,7 +25,7 @@ Structured hypotheses for improving the planning system. Consumed by the continu
 - **Result:** Shipped. Created `src/checkin.ts` with `buildCheckinMessage()`, `shouldAutoDisable()`, `buildOptInPrompt()` — pure functions, 9/9 tests pass. Updated morning.md Step 12 to offer opt-in check-in at plan approval. Auto-disables at streak ≥ 3. Package.json test script now runs all test files (16/16 pass, no regressions).
 
 ## Auto-batch related tasks
-- **Status:** queued
+- **Status:** shipped
 - **Date added:** 2026-03-30
 - **Problem statement:** Context-switching between unrelated tasks wastes time. Related tasks (same label, linked) scheduled apart don't benefit from momentum.
 - **Proposed change:** When shaping the day (Step 4), detect tasks with shared labels or task_links and suggest scheduling them back-to-back.
@@ -33,4 +33,4 @@ Structured hypotheses for improving the planning system. Consumed by the continu
 - **Expected delta:** ps-009: +0.05
 - **Risks / counterarguments:** Batching might conflict with priority ordering (P1 first). Only batch within the same priority tier.
 - **Experiment design:** Add label/link check to Step 4 shape logic. Measure ps-009 before/after over 2 weeks.
-- **Result:**
+- **Result:** Shipped. Created `src/batch.ts` with `detectLabelBatches()`, `detectLinkBatches()`, `formatBatchSuggestion()` — pure functions, 9/9 tests pass. Both functions enforce same-priority-tier constraint. Updated morning.md Step 7 to detect batch candidates before slot assignment, with max 2 suggestions/session. 60/60 total todolist tests pass, no regressions.
