@@ -39,3 +39,14 @@ The execution engine picks from this queue based on expected eval delta.
 - **Risks / counterarguments:** The second session may show an error to the user if the conflict isn't handled gracefully. Mitigation: use Supabase upsert with `on_conflict=source_message_id` and `ignoreDuplicates=true`, so the second POST silently succeeds without inserting. Edge case: if the user genuinely wants two tasks from one message, they should send two messages.
 - **Experiment design:** (1) Add migration: `ALTER TABLE tasks ADD COLUMN source_message_id TEXT UNIQUE`. (2) Update /todo SKILL.md capture logic to include message ID on every create. (3) Handle 409/conflict as no-op. (4) Test: send a message with two sessions active — verify exactly 1 task created. Pass = 0 duplicates across 5 test messages.
 - **Result:** Shipped. Added `source_message_id text` column with partial unique index (nulls excluded). Created `src/dedup.ts` with `buildTaskInsertOptions()` and `isDuplicateIgnored()` — pure functions that wire into any task POST. Also created `src/format.ts` (was missing, causing pre-existing test failure). 27 tests pass. Next step for the /todo skill: pass `source_message_id` from the Discord message metadata on every capture call.
+
+## Inline task creation on Kanban board
+- **Status:** queued
+- **Date added:** 2026-04-02
+- **Problem statement:** Task capture only works via chat (iMessage/Discord). When already looking at the Kanban board (pwa-seven-rosy.vercel.app), there's no way to add a task without switching to a chat channel — breaking flow.
+- **Proposed change:** Add an "Add task" form at the bottom of each Kanban column. Fields: title (required), description (optional), priority (dropdown, default P3). Submits directly to Supabase via REST POST to `/rest/v1/tasks`. New task appears immediately on the board without refresh.
+- **Target eval(s):** eval-001 (capture a task instantly)
+- **Expected delta:** +0.1 — adds a new capture surface for when the user is already in the board context, reducing channel-switching friction
+- **Risks / counterarguments:** Low risk. Board becomes read-write, so needs basic input validation (no empty titles). No auth concern — personal tool. May encourage adding tasks without priority thought if defaulting to P3 is too frictionless. Mitigated by making priority visible and changeable in the form.
+- **Experiment design:** Add form component to the Kanban board. Wire to Supabase POST. Verify: (1) task appears on board immediately after submit, (2) task visible via `td list`, (3) empty title is rejected, (4) priority default is P3 and can be changed before submit.
+- **Result:**
