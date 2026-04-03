@@ -10,7 +10,7 @@ Read `goal.md` in this directory for strategic direction before every session.
 | File | Owner | Purpose |
 |------|-------|---------|
 | `goal.md` | Human | Strategic direction — read before every experiment |
-| `ideas-backlog.md` | Shared | Hypothesis queue — pick top queued entry, update status after experiments |
+| Supabase `hypotheses` | Shared | Hypothesis queue in Supabase — query for queued, update status after experiments |
 | `experiment-log/` | Agent | One markdown file per experiment with before/after eval deltas |
 | `../../evals.json` | Pipeline | Behavioral evals (single source of truth — NEVER copy content here) |
 
@@ -65,34 +65,41 @@ When the builder signals completion ("graduate this", "port it", "add to backlog
    - Risks / counterarguments (from the sparring)
    - Experiment design (minimum viable test)
 2. **Show the draft** to the builder in the thread for approval
-3. **Append** the approved hypothesis to `ideas-backlog.md` with status: queued
+3. **Insert** the approved hypothesis into Supabase via curl:
+   ```bash
+   curl -s -X POST "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses" \
+     -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Content-Type: application/json" \
+     -d '{"product":"todolist","workstream":"processing","title":"...","status":"queued","date_added":"YYYY-MM-DD","problem_statement":"...","proposed_change":"...","target_evals":"...","expected_delta":"...","confidence":"high|medium|low","risks":"...","experiment_design":"..."}'
+   ```
 4. **Confirm** in the thread that it's been added
 
 If the builder doesn't explicitly graduate, the idea stays in the thread — no pressure.
-
-### Auto-Commit After Graduation
-
-After appending a hypothesis to `ideas-backlog.md`, immediately commit and push so the overnight experiment runner can see it:
-
-```bash
-git add workstreams/processing/ideas-backlog.md
-git commit -m "Graduate hypothesis: <title> (processing workstream)"
-git push
-```
-
-This is mandatory — the experiment runner does a fresh git checkout and will not see uncommitted changes.
 
 ## Experiment Workflow (Execution Engine)
 
 When running experiments (scheduled heartbeat, not during capture):
 
 1. **Read** goal.md for current direction
-2. **Select** the top queued hypothesis from ideas-backlog.md (priority = expected delta × confidence)
+2. **Select** the top queued hypothesis from Supabase:
+   ```bash
+   curl -s "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses?status=eq.queued&product=eq.todolist&workstream=eq.processing&order=expected_delta.desc&limit=1" \
+     -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk"
+   ```
 3. **Branch** into a git worktree for isolation
 4. **Implement** the proposed change within adaptation boundaries
 5. **Measure** run the eval suite, capture before/after deltas for this workstream's eval IDs
 6. **Decide** if eval delta meets threshold → merge and ship. If neutral or negative → reject with learnings
-7. **Update** mark the hypothesis status in ideas-backlog.md, write results to experiment-log/
+7. **Update** hypothesis status in Supabase and write results to experiment-log/:
+   ```bash
+   curl -s -X PATCH "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses?id=eq.<UUID>" \
+     -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Content-Type: application/json" \
+     -d '{"status":"shipped","result":"Description of what happened"}'
+   ```
 
 ## Adaptation Boundaries
 
