@@ -91,8 +91,11 @@ When running experiments (scheduled heartbeat, not during capture):
 3. **Branch** into a git worktree for isolation
 4. **Implement** the proposed change within adaptation boundaries
 5. **Measure** run the eval suite, capture before/after deltas for this workstream's eval IDs
-6. **Decide** if eval delta meets threshold → merge and ship. If neutral or negative → reject with learnings
-7. **Update** hypothesis status in Supabase and write results to experiment-log/:
+6. **Decide** using the decision thresholds below:
+   - |eval delta| >= 0.05 and positive → merge and ship
+   - |eval delta| >= 0.05 and negative → reject with learnings
+   - |eval delta| < 0.05 → mark as **inconclusive** (hypothesis returns to queued for redesign)
+7. **Update** hypothesis status in Supabase (`shipped`, `rejected`, or `inconclusive`) and write results to experiment-log/:
    ```bash
    curl -s -X PATCH "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses?id=eq.<UUID>" \
      -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
@@ -100,6 +103,18 @@ When running experiments (scheduled heartbeat, not during capture):
      -H "Content-Type: application/json" \
      -d '{"status":"shipped","result":"Description of what happened"}'
    ```
+
+## Decision Thresholds
+
+The minimum eval delta threshold is **0.05**. This prevents ambiguous ship/reject decisions on tiny deltas.
+
+| |eval delta| | Decision | Supabase status |
+|-------------|----------|------------------|
+| >= 0.05, positive | Ship (merge to main) | `shipped` |
+| >= 0.05, negative | Reject (log learnings) | `rejected` |
+| < 0.05 | Inconclusive (redesign the hypothesis) | `inconclusive` |
+
+An inconclusive result means the experiment ran correctly but the signal was too weak to act on. The hypothesis stays available for redesign with a different approach.
 
 ## Adaptation Boundaries
 
