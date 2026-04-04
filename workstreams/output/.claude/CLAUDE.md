@@ -93,13 +93,29 @@ When running experiments (scheduled heartbeat, not during capture):
    - |eval delta| >= 0.05 and positive → merge and ship
    - |eval delta| >= 0.05 and negative → reject with learnings
    - |eval delta| < 0.05 → mark as **inconclusive** (hypothesis returns to queued for redesign)
-7. **Update** hypothesis status in Supabase (`shipped`, `rejected`, or `inconclusive`) and write results to experiment-log/:
+7. **Update** all three Supabase tables and write results to experiment-log/:
    ```bash
-   curl -s -X PATCH "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses?id=eq.<UUID>" \
+   # a) Update hypothesis status
+   curl -s -X PATCH "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/hypotheses?id=eq.<HYPOTHESIS_UUID>" \
      -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
      -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
      -H "Content-Type: application/json" \
      -d '{"status":"shipped","result":"Description of what happened"}'
+
+   # b) Insert experiment record
+   curl -s -X POST "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/experiments" \
+     -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Content-Type: application/json" \
+     -H "Prefer: return=representation" \
+     -d '{"product":"<PRODUCT>","workstream":"<WORKSTREAM>","hypothesis":"<TITLE>","status":"shipped","branch":"experiment/<workstream>/<date>-<slug>","completed_at":"<ISO_TIMESTAMP>","qualitative_description":"<SUMMARY>"}'
+
+   # c) Insert eval deltas (one per measured eval)
+   curl -s -X POST "https://xwxsrsybllifbivhgojl.supabase.co/rest/v1/eval_deltas" \
+     -H "apikey: sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk" \
+     -H "Content-Type: application/json" \
+     -d '{"experiment_id":"<EXPERIMENT_UUID>","eval_id":"<EVAL_ID>","before_score":<BEFORE>,"after_score":<AFTER>}'
    ```
 
 ## Decision Thresholds
