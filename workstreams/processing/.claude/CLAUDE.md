@@ -89,7 +89,12 @@ When running experiments (scheduled heartbeat, not during capture):
      -H "Authorization: Bearer sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk"
    ```
 3. **Branch** into a git worktree for isolation
-4. **Implement** the proposed change within adaptation boundaries
+4. **Implement using red-green TDD.** Every code change follows test-first discipline:
+   - Write a failing test that proves the hypothesis behavior doesn't exist yet (red)
+   - Implement the minimum change to make the test pass (green)
+   - For bug fixes: write a reproducing test first → fix → prove via passing test
+   - Aim for broad coverage: unit tests for logic, Playwright E2E for UI changes, eval tests for behavioral outcomes
+   - No code ships without tests. No exceptions.
 5. **Measure** run the eval suite, capture before/after deltas for this workstream's eval IDs
 6. **Decide** using the decision thresholds below:
    - |eval delta| >= 0.05 and positive → merge and ship
