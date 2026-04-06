@@ -10,52 +10,71 @@ LOG_FILE="$PRODUCTS_DIR/experiment-runs.log"
 CLAUDE="$HOME/.local/bin/claude"
 SUPABASE_URL="https://xwxsrsybllifbivhgojl.supabase.co/rest/v1"
 SUPABASE_KEY="sb_publishable_fcZRHJWzxFYrwfQVmTy0GQ_6DVu0Byk"
+REPORTS_CHANNEL_ID="${REPORTS_CHANNEL_ID:-1489857755920470148}"
 
 # Ensure PATH includes homebrew + bun for test runners
 export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 
 echo "$(date -Iseconds) Starting experiment run" >> "$LOG_FILE"
 
-# ── Auth preflight ─────────────────────────────────────────────────────
-# Catch expired credentials BEFORE picking a hypothesis. If Claude Code is
-# not logged in, abort cleanly and ping Discord so you notice in the morning.
+# Post a message to Discord #reports. Logs HTTP failures so silent token
+# rejections don't defeat the alert.
 notify_discord() {
   local msg="$1"
   local discord_env="$HOME/.claude/channels/discord/.env"
   [ -f "$discord_env" ] || return 0
   local bot_token
-  bot_token=$(grep '^DISCORD_BOT_TOKEN=' "$discord_env" | cut -d= -f2- | tr -d '"' | tr -d "'")
+  bot_token=$(set -a; . "$discord_env" 2>/dev/null; printf '%s' "${DISCORD_BOT_TOKEN:-}")
   [ -n "$bot_token" ] || return 0
-  local channel_id="${REPORTS_CHANNEL_ID:-1489857755920470148}"
-  curl -sS -X POST "https://discord.com/api/v10/channels/$channel_id/messages" \
+  local payload
+  payload=$(printf '%s' "$msg" | python3 -c 'import json,sys; print(json.dumps({"content": sys.stdin.read()}))')
+  local http_code
+  http_code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+    "https://discord.com/api/v10/channels/$REPORTS_CHANNEL_ID/messages" \
     -H "Authorization: Bot $bot_token" \
     -H "Content-Type: application/json" \
-    -d "{\"content\": $(printf '%s' "$msg" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
-    >> "$LOG_FILE" 2>&1 || true
+    -d "$payload" 2>>"$LOG_FILE" || echo "000")
+  if [ "$http_code" != "200" ] && [ "$http_code" != "204" ]; then
+    echo "$(date -Iseconds) DISCORD NOTIFY FAILED: HTTP $http_code" >> "$LOG_FILE"
+  fi
 }
 
-AUTH_CHECK=$("$CLAUDE" --dangerously-skip-permissions --print -p "Reply with exactly the word: pong" 2>&1 || true)
-if echo "$AUTH_CHECK" | grep -qiE "not logged in|please run /login|authentication failed"; then
-  HOSTNAME_SHORT=$(hostname -s)
-  MSG="🔴 Overnight experiment ABORTED on \`$HOSTNAME_SHORT\` at $(date -Iseconds) — Claude Code not logged in. SSH in and run: \`claude /login\`"
-  echo "$(date -Iseconds) AUTH PREFLIGHT FAILED: $AUTH_CHECK" >> "$LOG_FILE"
-  notify_discord "$MSG"
-  echo "---" >> "$LOG_FILE"
-  exit 1
-fi
-echo "$(date -Iseconds) Auth preflight OK" >> "$LOG_FILE"
+# Verify Claude Code is authenticated. Returns 0 on success, 1 on failure.
+# Exit code is the stable contract; the text-match fallback handles versions
+# that exit 0 while still printing a login prompt to stdout.
+auth_preflight_output=""
+auth_preflight() {
+  if ! auth_preflight_output=$("$CLAUDE" --dangerously-skip-permissions --print -p "Reply with exactly the word: pong" 2>&1); then
+    return 1
+  fi
+  if echo "$auth_preflight_output" | grep -qiE "not logged in|please run /login|authentication failed"; then
+    return 1
+  fi
+  return 0
+}
 
 # Find the top queued hypothesis across all products
 TOP=$(curl -sf "$SUPABASE_URL/hypotheses?status=eq.queued&order=expected_delta.desc&limit=1" \
   -H "apikey: $SUPABASE_KEY" \
   -H "Authorization: Bearer $SUPABASE_KEY")
 
-# Check if queue is empty
+# Check if queue is empty (skip auth preflight when there's no work)
 if [ "$TOP" = "[]" ] || [ -z "$TOP" ]; then
   echo "$(date -Iseconds) No queued hypotheses. Skipping." >> "$LOG_FILE"
   echo "---" >> "$LOG_FILE"
   exit 0
 fi
+
+# Queue has work — verify Claude Code auth before invoking it
+if ! auth_preflight; then
+  hostname_short=$(hostname -s)
+  msg="🔴 Overnight experiment ABORTED on \`$hostname_short\` at $(date -Iseconds) — Claude Code not logged in. SSH in and run: \`claude /login\`"
+  echo "$(date -Iseconds) AUTH PREFLIGHT FAILED: $auth_preflight_output" >> "$LOG_FILE"
+  notify_discord "$msg"
+  echo "---" >> "$LOG_FILE"
+  exit 1
+fi
+echo "$(date -Iseconds) Auth preflight OK" >> "$LOG_FILE"
 
 PRODUCT=$(echo "$TOP" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['product'])")
 PRODUCT_DIR="$PRODUCTS_DIR/$PRODUCT"
