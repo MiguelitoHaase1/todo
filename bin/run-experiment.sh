@@ -16,6 +16,35 @@ export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 
 echo "$(date -Iseconds) Starting experiment run" >> "$LOG_FILE"
 
+# ── Auth preflight ─────────────────────────────────────────────────────
+# Catch expired credentials BEFORE picking a hypothesis. If Claude Code is
+# not logged in, abort cleanly and ping Discord so you notice in the morning.
+notify_discord() {
+  local msg="$1"
+  local discord_env="$HOME/.claude/channels/discord/.env"
+  [ -f "$discord_env" ] || return 0
+  local bot_token
+  bot_token=$(grep '^DISCORD_BOT_TOKEN=' "$discord_env" | cut -d= -f2- | tr -d '"' | tr -d "'")
+  [ -n "$bot_token" ] || return 0
+  local channel_id="${REPORTS_CHANNEL_ID:-1489857755920470148}"
+  curl -sS -X POST "https://discord.com/api/v10/channels/$channel_id/messages" \
+    -H "Authorization: Bot $bot_token" \
+    -H "Content-Type: application/json" \
+    -d "{\"content\": $(printf '%s' "$msg" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
+    >> "$LOG_FILE" 2>&1 || true
+}
+
+AUTH_CHECK=$("$CLAUDE" --dangerously-skip-permissions --print -p "Reply with exactly the word: pong" 2>&1 || true)
+if echo "$AUTH_CHECK" | grep -qiE "not logged in|please run /login|authentication failed"; then
+  HOSTNAME_SHORT=$(hostname -s)
+  MSG="🔴 Overnight experiment ABORTED on \`$HOSTNAME_SHORT\` at $(date -Iseconds) — Claude Code not logged in. SSH in and run: \`claude /login\`"
+  echo "$(date -Iseconds) AUTH PREFLIGHT FAILED: $AUTH_CHECK" >> "$LOG_FILE"
+  notify_discord "$MSG"
+  echo "---" >> "$LOG_FILE"
+  exit 1
+fi
+echo "$(date -Iseconds) Auth preflight OK" >> "$LOG_FILE"
+
 # Find the top queued hypothesis across all products
 TOP=$(curl -sf "$SUPABASE_URL/hypotheses?status=eq.queued&order=expected_delta.desc&limit=1" \
   -H "apikey: $SUPABASE_KEY" \
@@ -47,7 +76,7 @@ You are in EXECUTE mode for the $PRODUCT continuous-improvements system.
 
 1. Query Supabase for the top queued hypothesis (product=$PRODUCT, ordered by expected_delta desc):
    curl -s '$SUPABASE_URL/hypotheses?status=eq.queued&product=eq.$PRODUCT&order=expected_delta.desc&limit=1' -H 'apikey: $SUPABASE_KEY' -H 'Authorization: Bearer $SUPABASE_KEY'
-2. If no queued hypotheses, exit cleanly
+2. If no queued hypotheses, exit cleanly — do NOT commit, push, or write any files
 3. Read that workstream's goal.md and .claude/CLAUDE.md for context
 4. Read evals.json for eval definitions
 5. Create an isolated git worktree: git worktree add .worktrees/experiment-<slug> -b experiment/<workstream>/<date>-<slug>
@@ -60,7 +89,12 @@ You are in EXECUTE mode for the $PRODUCT continuous-improvements system.
     curl -s -X PATCH '$SUPABASE_URL/hypotheses?id=eq.<UUID>' -H 'apikey: $SUPABASE_KEY' -H 'Authorization: Bearer $SUPABASE_KEY' -H 'Content-Type: application/json' -d '{\"status\":\"shipped\",\"result\":\"...\"}'
 12. Write a detailed experiment log to workstreams/<slug>/experiment-log/
 13. Clean up the worktree
-14. Push changes to git remote
+
+IMPORTANT RULES:
+- Do NOT run 'git push' or push to any git remote. Local commits only.
+- Do NOT commit heartbeat logs, failure logs, or any non-experiment files.
+- If Supabase is unreachable or returns errors, abort cleanly without committing anything.
+- If no hypothesis is found, exit immediately without side effects.
 
 CIRCUIT BREAKERS — stop immediately if:
 - 3 test failures on the same error
@@ -73,10 +107,11 @@ Run exactly ONE experiment, then stop.
 
 echo "$(date -Iseconds) Experiment run complete (product: $PRODUCT)" >> "$LOG_FILE"
 
-# Post heartbeat report to Discord #reports
+# Post heartbeat report to Discord #reports (runs from build-system dir, not product dir)
 HEARTBEAT="$HOME/AI/Products/build-system/continuous-improvements/bin/heartbeat-report.ts"
 if [ -f "$HEARTBEAT" ]; then
   echo "$(date -Iseconds) Posting heartbeat report..." >> "$LOG_FILE"
+  cd "$HOME/AI/Products/build-system"
   bun "$HEARTBEAT" >> "$LOG_FILE" 2>&1 || echo "$(date -Iseconds) Heartbeat report failed (non-fatal)" >> "$LOG_FILE"
 fi
 
