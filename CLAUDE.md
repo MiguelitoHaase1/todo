@@ -37,6 +37,7 @@ Task management commands (add, list, today, done, triage, plan, morning) can arr
 |-------------|-----------|---------|
 | `#tasks` | `1488660132429562080` | Quick capture, list, done, today |
 | `#planning` | `1488660134702874814` | Triage, plan-tomorrow, morning relay (threaded) |
+| `#morningbrew` | `1490598646868349128` | Interactive draft-adapt-confirm for the daily morning brew. Cron posts a DRAFT at 5:30 AM; reply with adaptations; say "ship it" to commit (HTML deploy + calendar write-back). Full routing in `~/AI/Me/Productivity/chief-of-staff/CLAUDE.md`. |
 
 Multi-step flows in `#planning` use Discord threads for conversation isolation.
 
