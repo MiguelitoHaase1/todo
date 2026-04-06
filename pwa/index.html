@@ -75,6 +75,13 @@
 
     .header-actions { display: flex; gap: 8px; align-items: center; }
 
+    .refresh-fixed {
+      position: fixed;
+      top: 14px;
+      right: 20px;
+      z-index: 200;
+    }
+
     .header-btn {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -108,6 +115,30 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       overflow: hidden;
+    }
+    .undated-indicator {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 16px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      writing-mode: vertical-lr;
+      text-orientation: mixed;
+      white-space: nowrap;
+    }
+    .undated-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--border);
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
     }
 
     .col-header {
@@ -548,10 +579,8 @@
 
 <header>
   <h1>Tasks</h1>
-  <div class="header-actions">
-    <button class="header-btn" id="refresh-btn">↻ Refresh</button>
-  </div>
 </header>
+<button class="header-btn refresh-fixed" id="refresh-btn" title="Refresh">↻</button>
 
 <div id="board"></div>
 
@@ -615,6 +644,52 @@
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
+  function formatDateStr(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  /** Build MECE column definitions: Today, T+1, T+2, T+3, T+4, T+5, Next 7 (T+6–T+12), Later (T+13+) */
+  function buildColumnDefs() {
+    const cols = [];
+    const labels = ['Today', 'Tomorrow', '+2 days', '+3 days', '+4 days', '+5 days'];
+
+    // Individual day columns: T+0 through T+5
+    for (let i = 0; i < 6; i++) {
+      const dateStr = localDateStr(i);
+      cols.push({
+        id: `day-${i}`,
+        label: labels[i],
+        sublabel: formatDate(i),
+        match: (d) => d === dateStr,
+        addDate: dateStr,
+      });
+    }
+
+    // "Next 7 days" — T+6 through T+12
+    const t6 = localDateStr(6);
+    const t12 = localDateStr(12);
+    cols.push({
+      id: 'next-7',
+      label: 'Next 7 days',
+      sublabel: `${formatDateStr(t6)} – ${formatDateStr(t12)}`,
+      match: (d) => d >= t6 && d <= t12,
+      addDate: t6,
+    });
+
+    // "Later" — T+13 onward
+    const t13 = localDateStr(13);
+    cols.push({
+      id: 'later',
+      label: 'Later',
+      sublabel: `After ${formatDateStr(t12)}`,
+      match: (d) => d > t12,
+      addDate: t13,
+    });
+
+    return cols;
+  }
+
   // ── Supabase ────────────────────────────────────────────────────────────
   function sbHeaders() {
     return {
@@ -625,15 +700,28 @@
     };
   }
 
+  let undatedCount = 0;
+
   async function fetchTasks() {
     if (!SB_URL || !SB_KEY) return DEMO_TASKS;
     const from = localDateStr(0);
-    const to = localDateStr(3);
+    // Fetch dated tasks (today onward)
     const res = await fetch(
-      `${SB_URL}/rest/v1/tasks?select=*&status=eq.open&due_date=gte.${from}&due_date=lte.${to}&order=priority.asc,created_at.asc`,
+      `${SB_URL}/rest/v1/tasks?select=*&status=eq.open&due_date=gte.${from}&order=priority.asc,created_at.asc`,
       { headers: sbHeaders() }
     );
     if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+
+    // Count undated tasks separately
+    const countRes = await fetch(
+      `${SB_URL}/rest/v1/tasks?select=id&status=eq.open&due_date=is.null`,
+      { headers: sbHeaders() }
+    );
+    if (countRes.ok) {
+      const undated = await countRes.json();
+      undatedCount = undated.length;
+    }
+
     return res.json();
   }
 
@@ -741,32 +829,32 @@
     const board = document.getElementById('board');
     board.innerHTML = '';
 
-    for (let offset = 0; offset < 4; offset++) {
-      const dateStr = localDateStr(offset);
-      const colTasks = tasks.filter(t => t.due_date === dateStr);
-      const isToday = offset === 0;
+    const colDefs = buildColumnDefs();
+
+    for (const def of colDefs) {
+      const colTasks = tasks.filter(t => t.due_date && def.match(t.due_date));
 
       const col = document.createElement('div');
       col.className = 'column';
       col.innerHTML = `
         <div class="col-header">
           <div>
-            <div class="col-title">${colLabel(offset)}</div>
-            <div class="col-date">${formatDate(offset)}</div>
+            <div class="col-title">${def.label}</div>
+            <div class="col-date">${def.sublabel}</div>
           </div>
           <span class="col-count">${colTasks.length}</span>
         </div>
-        <div class="col-tasks" data-date="${dateStr}">
+        <div class="col-tasks" data-date="${def.addDate}">
           ${colTasks.length === 0
             ? '<div class="empty-state">No tasks</div>'
             : colTasks.map(taskCard).join('')}
         </div>
-        <button class="add-task-trigger" data-date="${dateStr}">+ Add task</button>
-        <div class="add-task-form" data-date="${dateStr}">
+        <button class="add-task-trigger" data-date="${def.addDate}">+ Add task</button>
+        <div class="add-task-form" data-date="${def.addDate}">
           <div class="add-card">
-            <input type="text" class="add-title" data-date="${dateStr}" placeholder="Task title..." />
+            <input type="text" class="add-title" data-date="${def.addDate}" placeholder="Task title..." />
             <div class="add-row">
-              <select class="add-priority" data-date="${dateStr}">
+              <select class="add-priority" data-date="${def.addDate}">
                 <option value="0">P0</option>
                 <option value="1">P1</option>
                 <option value="2">P2</option>
@@ -774,14 +862,22 @@
                 <option value="4">P4</option>
               </select>
               <div class="add-actions">
-                <button class="add-btn add-btn-cancel" data-date="${dateStr}">Cancel</button>
-                <button class="add-btn add-btn-save" data-date="${dateStr}">Add</button>
+                <button class="add-btn add-btn-cancel" data-date="${def.addDate}">Cancel</button>
+                <button class="add-btn add-btn-save" data-date="${def.addDate}">Add</button>
               </div>
             </div>
           </div>
         </div>
       `;
       board.appendChild(col);
+    }
+
+    // Undated tasks indicator after the last column
+    if (undatedCount > 0) {
+      const indicator = document.createElement('div');
+      indicator.className = 'undated-indicator';
+      indicator.innerHTML = `<span class="undated-count">${undatedCount}</span> undated task${undatedCount !== 1 ? 's' : ''}`;
+      board.appendChild(indicator);
     }
 
     attachListeners();
