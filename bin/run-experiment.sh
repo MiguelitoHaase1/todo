@@ -19,6 +19,20 @@ source "$HOME/AI/lib/notify-discord.sh"
 
 echo "$(date -Iseconds) Starting experiment run" >> "$LOG_FILE"
 
+# Skill-drift preflight — if the repo and ~/.claude/skills/ have diverged,
+# something is wrong with the sync toolchain. Abort BEFORE running any
+# experiment so a broken runtime doesn't quietly produce bad eval deltas.
+# The --alert flag sends a Discord notification on drift.
+DRIFT_CHECK="$HOME/AI/bin/check-skill-drift.sh"
+if [ -x "$DRIFT_CHECK" ]; then
+  if ! "$DRIFT_CHECK" --alert >> "$LOG_FILE" 2>&1; then
+    echo "$(date -Iseconds) DRIFT PREFLIGHT FAILED — aborting experiment run" >> "$LOG_FILE"
+    echo "---" >> "$LOG_FILE"
+    exit 1
+  fi
+  echo "$(date -Iseconds) Drift preflight OK" >> "$LOG_FILE"
+fi
+
 # Verify Claude Code is authenticated. Returns 0 on success, 1 on failure.
 # Exit code is the stable contract; the text-match fallback handles versions
 # that exit 0 while still printing a login prompt to stdout.
