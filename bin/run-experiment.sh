@@ -15,29 +15,9 @@ REPORTS_CHANNEL_ID="${REPORTS_CHANNEL_ID:-1489857755920470148}"
 # Ensure PATH includes homebrew + bun for test runners
 export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 
-echo "$(date -Iseconds) Starting experiment run" >> "$LOG_FILE"
+source "$HOME/AI/lib/notify-discord.sh"
 
-# Post a message to Discord #reports. Logs HTTP failures so silent token
-# rejections don't defeat the alert.
-notify_discord() {
-  local msg="$1"
-  local discord_env="$HOME/.claude/channels/discord/.env"
-  [ -f "$discord_env" ] || return 0
-  local bot_token
-  bot_token=$(set -a; . "$discord_env" 2>/dev/null; printf '%s' "${DISCORD_BOT_TOKEN:-}")
-  [ -n "$bot_token" ] || return 0
-  local payload
-  payload=$(printf '%s' "$msg" | python3 -c 'import json,sys; print(json.dumps({"content": sys.stdin.read()}))')
-  local http_code
-  http_code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
-    "https://discord.com/api/v10/channels/$REPORTS_CHANNEL_ID/messages" \
-    -H "Authorization: Bot $bot_token" \
-    -H "Content-Type: application/json" \
-    -d "$payload" 2>>"$LOG_FILE" || echo "000")
-  if [ "$http_code" != "200" ] && [ "$http_code" != "204" ]; then
-    echo "$(date -Iseconds) DISCORD NOTIFY FAILED: HTTP $http_code" >> "$LOG_FILE"
-  fi
-}
+echo "$(date -Iseconds) Starting experiment run" >> "$LOG_FILE"
 
 # Verify Claude Code is authenticated. Returns 0 on success, 1 on failure.
 # Exit code is the stable contract; the text-match fallback handles versions
@@ -70,7 +50,7 @@ if ! auth_preflight; then
   hostname_short=$(hostname -s)
   msg="🔴 Overnight experiment ABORTED on \`$hostname_short\` at $(date -Iseconds) — Claude Code not logged in. SSH in and run: \`claude /login\`"
   echo "$(date -Iseconds) AUTH PREFLIGHT FAILED: $auth_preflight_output" >> "$LOG_FILE"
-  notify_discord "$msg"
+  notify_discord "$REPORTS_CHANNEL_ID" "$msg" "$LOG_FILE"
   echo "---" >> "$LOG_FILE"
   exit 1
 fi
