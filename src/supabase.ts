@@ -93,7 +93,7 @@ export interface TaskEvent {
   event_type: "created" | "status_changed" | "priority_changed" | "deferred" | "due_date_set" | "title_changed";
   previous_value?: string | null;
   new_value?: string | null;
-  source: "cli" | "imessage" | "discord" | "pwa" | "morning" | "triage" | "plan_tomorrow";
+  source: "cli" | "imessage" | "discord" | "pwa" | "morning" | "triage" | "plan_tomorrow" | "mcp";
 }
 
 /** Fire-and-forget audit event. Logs to stderr on failure but never throws. */
@@ -193,6 +193,39 @@ export async function resolveTask(idPrefix: string): Promise<Task> {
       console.error(`  ${t.id.slice(0, 8)}  ${t.title}`);
     }
     process.exit(1);
+  }
+
+  return matches[0];
+}
+
+/**
+ * Throwing variant of resolveTask — same lookup logic, but raises an Error
+ * instead of calling process.exit. Use this in any non-CLI context (MCP server,
+ * library code) where killing the process is the wrong failure mode.
+ */
+export async function resolveTaskOrThrow(idPrefix: string): Promise<Task> {
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  if (uuidPattern.test(idPrefix)) {
+    const tasks = await sbSelect<Task>("tasks", `id=eq.${idPrefix}`);
+    if (tasks.length === 0) {
+      throw new Error(`No task found: ${idPrefix}`);
+    }
+    return tasks[0];
+  }
+
+  const all = await sbSelect<Task>("tasks");
+  const matches = all.filter((t) => t.id.startsWith(idPrefix));
+
+  if (matches.length === 0) {
+    throw new Error(`No task found matching: ${idPrefix}`);
+  }
+
+  if (matches.length > 1) {
+    const previews = matches.map((t) => `${t.id.slice(0, 8)} ${t.title}`).join(", ");
+    throw new Error(
+      `Ambiguous ID "${idPrefix}" matches ${matches.length} tasks. Use a longer prefix. Candidates: ${previews}`,
+    );
   }
 
   return matches[0];

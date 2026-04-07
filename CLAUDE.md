@@ -37,7 +37,8 @@ Task management commands (add, list, today, done, triage, plan, morning) can arr
 |-------------|-----------|---------|
 | `#tasks` | `1488660132429562080` | Quick capture, list, done, today |
 | `#planning` | `1488660134702874814` | Triage, plan-tomorrow, morning relay (threaded) |
-| `#morningbrew` | `1490598646868349128` | Interactive draft-adapt-confirm for the daily morning brew. Cron posts a DRAFT at 5:30 AM; reply with adaptations; say "ship it" to commit (HTML deploy + calendar write-back). Full routing in `~/AI/Me/Productivity/chief-of-staff/CLAUDE.md`. |
+| `#morningbrew` | `1490598646868349128` | On-demand morning brew. Type any message to trigger today's draft; reply to adapt; "ship it" commits. Full routing in `~/AI/Me/Productivity/chief-of-staff/CLAUDE.md`. |
+| `#experiments` | `1490974343096963244` | On-demand build-system experiment runner. Type "run", "go", or "run experiment" to execute the top queued hypothesis from Supabase. Other messages are conversation about the experiment. Routing in `~/AI/Products/build-system/continuous-improvements/workstreams/experiments/.claude/CLAUDE.md`. |
 
 Multi-step flows in `#planning` use Discord threads for conversation isolation.
 
