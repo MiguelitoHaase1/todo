@@ -1,11 +1,15 @@
 /**
  * JWT signing and verification for access tokens.
  * HS256 with a shared secret from JWT_SIGNING_KEY env var.
+ *
+ * The `iss` claim must match the AS metadata `issuer` value (RFC 8414 / 9068),
+ * so we use the public URL from config — not a hand-rolled string. Strict
+ * clients like claude.ai's connector reject tokens with a mismatched issuer.
  */
 
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { getPublicUrl } from "../config.js";
 
-const ISSUER = "todolist-mcp-server";
 const TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
 
 // Secret is fetched once per cold start and cached for the life of the worker.
@@ -43,11 +47,14 @@ export async function signAccessToken(claims: {
     client_id: claims.clientId,
     ...(claims.resource ? { resource: claims.resource } : {}),
   })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setIssuer(ISSUER)
+    // typ "at+jwt" is the RFC 9068 access-token profile; some validators
+    // (including claude.ai) require it instead of plain "JWT".
+    .setProtectedHeader({ alg: "HS256", typ: "at+jwt" })
+    .setIssuer(getPublicUrl())
     .setSubject(claims.subject)
     .setAudience(claims.audience)
     .setIssuedAt()
+    .setNotBefore(0)
     .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
     .sign(secret);
 
@@ -57,8 +64,9 @@ export async function signAccessToken(claims: {
 export async function verifyAccessToken(token: string, expectedAudience: string): Promise<AccessTokenClaims> {
   const secret = getSecret();
   const { payload } = await jwtVerify(token, secret, {
-    issuer: ISSUER,
+    issuer: getPublicUrl(),
     audience: expectedAudience,
+    typ: "at+jwt",
   });
   if (typeof payload.sub !== "string" || typeof payload.scope !== "string" || typeof payload.client_id !== "string") {
     throw new Error("invalid token claims");
