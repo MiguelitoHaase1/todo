@@ -1,5 +1,12 @@
 # Todolist — Headless Brain
 
+## Git Scope
+
+This project is bound to repo: **`MiguelitoHaase1/todo`**
+All git operations from this directory must target this repo. The `~/AI` workspace folder itself is NOT a git repo.
+
+Nested exception: `pwa/` is a separate nested repo bound to `MiguelitoHaase1/todolist-pwa` and is `.gitignore`d here.
+
 This is the source repo for the `td` CLI and the `/todo` skill.
 
 ## What lives here

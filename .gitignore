@@ -1,1 +1,42 @@
+# Nested pwa repo (separate todolist-pwa.git)
 pwa/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+dist/
+.next/
+.turbo/
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.sw?
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+*.tsbuildinfo
+coverage/
+bun.lockb
+
+# Playwright debug
+.playwright-mcp/
+
+# Local state
+.build-state.json
+.build-sessions/
+.archetype-state.json
+.eval-state.json
+.strategy-state.json
+.onboard-state.json
