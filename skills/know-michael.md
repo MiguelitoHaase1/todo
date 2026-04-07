@@ -43,7 +43,7 @@ These sources change daily. Read them at the start of each day (detect date chan
 
 ### A. Daily Priorities and Patterns
 
-**Path:** `/Users/michaelhaase/AI/Me/Productivity/chief-of-staff/context/context.md`
+**Path:** `/Users/michaelhaase/AI/Products/morningbrew/context/context.md`
 
 Read these sections:
 - `## Priorities` (last 3–5 entries) — What has Michael been focused on? Is there a thread?
@@ -113,8 +113,8 @@ Match to the domain:
 
 ### G. Morning/Evening Workflow
 
-- `/Users/michaelhaase/AI/Me/Productivity/chief-of-staff/skills/morning.md`
-- `/Users/michaelhaase/AI/Me/Productivity/chief-of-staff/skills/evening.md`
+- `/Users/michaelhaase/AI/Products/morningbrew/skills/morning.md`
+- `/Users/michaelhaase/AI/Products/morningbrew/skills/evening.md`
 
 **When:** Only if Michael asks about how /morning or /evening works.
 
