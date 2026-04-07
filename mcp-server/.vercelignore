@@ -1,0 +1,9 @@
+node_modules/
+.vercel
+.env
+.env.local
+.env.*.local
+*.tsbuildinfo
+# Note: src/_shared/ is intentionally NOT excluded here even though it's in
+# .gitignore — Vercel needs the synced files at deploy time. The build step
+# regenerates them locally before each deploy.
