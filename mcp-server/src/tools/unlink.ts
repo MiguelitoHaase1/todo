@@ -9,6 +9,7 @@ import {
   resolveTaskOrThrow,
 } from "../_shared/supabase.js";
 import { TaskIdSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   source_id: TaskIdSchema.describe("First task (UUID or short prefix)."),
@@ -48,11 +49,7 @@ export function registerUnlinkTool(server: McpServer): void {
         ),
       );
 
-      const output = { unlinked: existing.length };
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      return toolResult({ unlinked: existing.length });
     },
   );
 }

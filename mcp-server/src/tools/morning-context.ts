@@ -8,35 +8,15 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { sbSelect, type Task } from "../_shared/supabase.js";
-import { filterEscalationCandidates, escalationMessage } from "../_shared/deferral.js";
-import { detectLinkBatches, formatBatchSuggestion, type BatchGroup } from "../_shared/batch.js";
+import { todayIso } from "../_shared/format.js";
 import { IsoDateSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
+import { buildEscalationItems, buildLinkBatches } from "../util/context-helpers.js";
 
 const InputSchema = {
   date: IsoDateSchema.optional().describe("Target date in YYYY-MM-DD. Defaults to today."),
 };
-
-function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-interface EscalationItem {
-  task_id: string;
-  title: string;
-  deferral_count: number;
-  prompt: string;
-}
-
-interface MorningContext {
-  date: string;
-  today_tasks: Task[];
-  overdue_tasks: Task[];
-  escalations: EscalationItem[];
-  batches: Array<BatchGroup & { suggestion: string }>;
-}
 
 export function registerMorningContextTool(server: McpServer): void {
   server.registerTool(
@@ -59,43 +39,22 @@ export function registerMorningContextTool(server: McpServer): void {
     async (args) => {
       const date = args.date ?? todayIso();
 
-      const [todayTasks, overdueTasks, allLinks] = await Promise.all([
+      const [todayTasks, overdueTasks] = await Promise.all([
         sbSelect<Task>("tasks", `status=eq.open&due_date=eq.${date}`, "priority.asc"),
         sbSelect<Task>("tasks", `status=eq.open&due_date=lt.${date}`, "priority.asc,due_date.asc"),
-        sbSelect<{ source_id: string; target_id: string }>("task_links"),
       ]);
 
-      const allTasksForBatch = [...todayTasks, ...overdueTasks].map((t) => ({
-        id: t.id,
-        title: t.title,
-        priority: t.priority,
-      }));
-      const linkBatches = detectLinkBatches(allTasksForBatch, allLinks);
-      const batchesWithSuggestions = linkBatches.map((b) => ({
-        ...b,
-        suggestion: formatBatchSuggestion(b),
-      }));
+      const allTasks = [...todayTasks, ...overdueTasks];
+      const batches = await buildLinkBatches(allTasks);
+      const escalations = buildEscalationItems(todayTasks);
 
-      const escalationCandidates = filterEscalationCandidates(todayTasks);
-      const escalations: EscalationItem[] = escalationCandidates.map((t) => ({
-        task_id: t.id,
-        title: t.title,
-        deferral_count: t.deferral_count ?? 0,
-        prompt: escalationMessage(t),
-      }));
-
-      const output: MorningContext = {
+      return toolResult({
         date,
         today_tasks: todayTasks,
         overdue_tasks: overdueTasks,
         escalations,
-        batches: batchesWithSuggestions,
-      };
-
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output as unknown as Record<string, unknown>,
-      };
+        batches,
+      });
     },
   );
 }

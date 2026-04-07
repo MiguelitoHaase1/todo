@@ -7,6 +7,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { buildTriageList } from "../_shared/triage.js";
+import { toolResult } from "../util/result.js";
 
 export function registerTriageListTool(server: McpServer): void {
   server.registerTool(
@@ -27,11 +28,7 @@ export function registerTriageListTool(server: McpServer): void {
     },
     async () => {
       const items = await buildTriageList();
-      const output = { count: items.length, items };
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      return toolResult({ count: items.length, items });
     },
   );
 }

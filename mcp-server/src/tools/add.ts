@@ -6,6 +6,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sbInsert, emitTaskEvent, type Task } from "../_shared/supabase.js";
 import { PrioritySchema, IsoDateSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   title: z.string().min(1).max(500).describe("Task title."),
@@ -52,10 +53,7 @@ export function registerAddTool(server: McpServer): void {
         source: "mcp",
       });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(task) }],
-        structuredContent: task as unknown as Record<string, unknown>,
-      };
+      return toolResult(task);
     },
   );
 }

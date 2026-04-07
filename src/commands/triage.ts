@@ -112,10 +112,15 @@ export function parseTriageReply(
 
 /**
  * Execute triage actions on tasks. Returns a summary string.
+ *
+ * `source` controls the value persisted in `task_events.source` for emitted
+ * audit events. Defaults to "triage" (the CLI/iMessage flow). The MCP server
+ * passes "mcp" so its mutations show up correctly in the audit log.
  */
 export async function executeTriageActions(
   items: TriageItem[],
   actions: ParsedAction[],
+  source: "triage" | "mcp" = "triage",
 ): Promise<string> {
   const itemMap = new Map(items.map((i) => [i.index, i]));
   const nextWeek = new Date();
@@ -159,7 +164,7 @@ export async function executeTriageActions(
             event_type: "status_changed",
             previous_value: op.item.task.status,
             new_value: "dropped",
-            source: "triage",
+            source,
           });
         } else if (op.action === "defer") {
           emitTaskEvent({
@@ -167,7 +172,7 @@ export async function executeTriageActions(
             event_type: "deferred",
             previous_value: op.item.task.due_date ?? "none",
             new_value: nextWeekStr,
-            source: "triage",
+            source,
           });
         }
       }

@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPublicUrl } from "../../src/config.js";
+import { getPublicUrl, getDefaultScope } from "../../src/config.js";
 
 export default function handler(req: VercelRequest, res: VercelResponse): void {
   if (req.method !== "GET") {
@@ -22,6 +22,6 @@ export default function handler(req: VercelRequest, res: VercelResponse): void {
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_basic"],
-    scopes_supported: ["mcp"],
+    scopes_supported: [getDefaultScope()],
   });
 }

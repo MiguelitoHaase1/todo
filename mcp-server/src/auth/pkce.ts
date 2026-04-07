@@ -8,13 +8,8 @@
 
 import { createHash } from "node:crypto";
 
-export function base64UrlEncode(buf: Buffer): string {
-  return buf.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
 export function s256Challenge(verifier: string): string {
-  const hash = createHash("sha256").update(verifier).digest();
-  return base64UrlEncode(hash);
+  return createHash("sha256").update(verifier).digest("base64url");
 }
 
 export function verifyPkce(verifier: string, challenge: string, method: string): boolean {

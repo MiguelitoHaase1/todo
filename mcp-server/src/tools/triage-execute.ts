@@ -12,6 +12,7 @@ import {
   parseTriageReply,
   executeTriageActions,
 } from "../_shared/triage.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   reply: z
@@ -42,22 +43,14 @@ export function registerTriageExecuteTool(server: McpServer): void {
     async (args) => {
       const items = await buildTriageList();
       if (items.length === 0) {
-        const output = { summary: "Nothing to triage.", actions: [], items_count: 0 };
-        return {
-          content: [{ type: "text", text: JSON.stringify(output) }],
-          structuredContent: output,
-        };
+        return toolResult({ summary: "Nothing to triage.", actions: [], items_count: 0 });
       }
       const actions = parseTriageReply(args.reply, items.length);
       if (actions.length === 0) {
         throw new Error(`Could not parse triage reply: "${args.reply}". Expected format like "drop 1, defer 2, keep 3" or "drop all".`);
       }
-      const summary = await executeTriageActions(items, actions);
-      const output = { summary, actions, items_count: items.length };
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      const summary = await executeTriageActions(items, actions, "mcp");
+      return toolResult({ summary, actions, items_count: items.length });
     },
   );
 }

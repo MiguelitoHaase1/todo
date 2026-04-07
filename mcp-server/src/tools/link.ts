@@ -12,6 +12,7 @@ import {
   type LinkType,
 } from "../_shared/supabase.js";
 import { TaskIdSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   source_id: TaskIdSchema.describe("First task (UUID or short prefix)."),
@@ -60,10 +61,7 @@ export function registerLinkTool(server: McpServer): void {
         link_type: linkType,
       });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(link) }],
-        structuredContent: link as unknown as Record<string, unknown>,
-      };
+      return toolResult(link);
     },
   );
 }

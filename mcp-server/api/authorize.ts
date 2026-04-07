@@ -16,6 +16,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { getClient, createCode } from "../src/auth/store.js";
 import { renderConsentPage } from "../src/auth/consent-page.js";
 import { getDefaultSubject, getDefaultScope, getMcpResourceUrl } from "../src/config.js";
+import { parseFormBody } from "../src/util/form-body.js";
 
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const REQUIRED_RESPONSE_TYPE = "code";
@@ -80,26 +81,6 @@ async function renderForGet(req: VercelRequest, res: VercelResponse, params: Aut
   });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(200).send(html);
-}
-
-function parseFormBody(req: VercelRequest): Record<string, string> {
-  // Vercel parses application/x-www-form-urlencoded into req.body as an object.
-  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
-    const result: Record<string, string> = {};
-    for (const [k, v] of Object.entries(req.body)) {
-      if (typeof v === "string") result[k] = v;
-    }
-    return result;
-  }
-  // Fallback for raw string bodies.
-  if (typeof req.body === "string") {
-    const result: Record<string, string> = {};
-    for (const [k, v] of new URLSearchParams(req.body).entries()) {
-      result[k] = v;
-    }
-    return result;
-  }
-  return {};
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {

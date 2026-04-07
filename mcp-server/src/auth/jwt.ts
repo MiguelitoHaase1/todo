@@ -8,12 +8,18 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 const ISSUER = "todolist-mcp-server";
 const TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
 
+// Secret is fetched once per cold start and cached for the life of the worker.
+// Reading process.env + TextEncoder.encode on every request is wasted CPU on
+// the auth-validation hot path; this lets the JIT specialize the closure too.
+let cachedSecret: Uint8Array | null = null;
 function getSecret(): Uint8Array {
+  if (cachedSecret) return cachedSecret;
   const key = process.env.JWT_SIGNING_KEY;
   if (!key) {
     throw new Error("JWT_SIGNING_KEY env var is not set");
   }
-  return new TextEncoder().encode(key);
+  cachedSecret = new TextEncoder().encode(key);
+  return cachedSecret;
 }
 
 export interface AccessTokenClaims extends JWTPayload {

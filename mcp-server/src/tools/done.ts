@@ -5,6 +5,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { resolveTaskOrThrow, sbUpdate, emitTaskEvent, type Task } from "../_shared/supabase.js";
 import { TaskIdSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   id: TaskIdSchema,
@@ -32,11 +33,7 @@ export function registerDoneTool(server: McpServer): void {
       const task = await resolveTaskOrThrow(args.id);
 
       if (task.status === "done") {
-        const output = { ...task, note: "already done — no change" };
-        return {
-          content: [{ type: "text", text: JSON.stringify(output) }],
-          structuredContent: output as unknown as Record<string, unknown>,
-        };
+        return toolResult({ ...task, note: "already done — no change" });
       }
 
       const updated = await sbUpdate<Task>("tasks", `id=eq.${task.id}`, { status: "done" });
@@ -49,10 +46,7 @@ export function registerDoneTool(server: McpServer): void {
         source: "mcp",
       });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(updated) }],
-        structuredContent: updated as unknown as Record<string, unknown>,
-      };
+      return toolResult(updated);
     },
   );
 }

@@ -7,7 +7,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sbSelect, type Task } from "../_shared/supabase.js";
+import { todayIso } from "../_shared/format.js";
 import { StatusFilterSchema, IsoDateSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   status: StatusFilterSchema.default("open").optional(),
@@ -25,14 +27,6 @@ const InputSchema = {
     .optional()
     .describe("Maximum number of tasks to return (default 50, max 200)."),
 };
-
-function todayIso(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 export function registerListTool(server: McpServer): void {
   server.registerTool(
@@ -73,11 +67,7 @@ export function registerListTool(server: McpServer): void {
         "priority.asc,due_date.asc.nullslast",
       );
 
-      const output = { count: tasks.length, tasks };
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      return toolResult({ count: tasks.length, tasks });
     },
   );
 }

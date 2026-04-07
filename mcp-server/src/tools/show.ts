@@ -13,6 +13,7 @@ import {
   type LinkType,
 } from "../_shared/supabase.js";
 import { TaskIdSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   id: TaskIdSchema,
@@ -87,11 +88,7 @@ export function registerShowTool(server: McpServer): void {
         getLinkedTasks(task.id),
       ]);
 
-      const output = { ...task, labels: labelNames, links: linkedTasks };
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      return toolResult({ ...task, labels: labelNames, links: linkedTasks });
     },
   );
 }

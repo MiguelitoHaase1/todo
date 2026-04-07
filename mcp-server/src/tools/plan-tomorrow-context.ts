@@ -15,9 +15,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sbSelect, type Task } from "../_shared/supabase.js";
-import { filterEscalationCandidates, escalationMessage } from "../_shared/deferral.js";
-import { detectLinkBatches, formatBatchSuggestion, type BatchGroup } from "../_shared/batch.js";
+import { todayIso, isoDateOffset } from "../_shared/format.js";
 import { IsoDateSchema } from "../schemas.js";
+import { toolResult } from "../util/result.js";
+import { buildEscalationItems, buildLinkBatches } from "../util/context-helpers.js";
 
 const InputSchema = {
   date: IsoDateSchema.optional().describe('Tomorrow\'s date in YYYY-MM-DD. Defaults to "today + 1".'),
@@ -30,35 +31,6 @@ const InputSchema = {
     .optional()
     .describe("Max number of backlog tasks to return (default 20)."),
 };
-
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function todayIso(): string {
-  return isoDate(new Date());
-}
-
-function tomorrowIsoFromToday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return isoDate(d);
-}
-
-interface PlanTomorrowContext {
-  today: string;
-  tomorrow: string;
-  today_recap: {
-    done: Task[];
-    deferred: Task[];
-    dropped: Task[];
-    still_open_today: Task[];
-  };
-  tomorrow_tasks: Task[];
-  backlog: Task[];
-  escalations: Array<{ task_id: string; title: string; deferral_count: number; prompt: string }>;
-  batches: Array<BatchGroup & { suggestion: string }>;
-}
 
 export function registerPlanTomorrowContextTool(server: McpServer): void {
   server.registerTool(
@@ -80,10 +52,10 @@ export function registerPlanTomorrowContextTool(server: McpServer): void {
     },
     async (args) => {
       const today = todayIso();
-      const tomorrow = args.date ?? tomorrowIsoFromToday();
+      const tomorrow = args.date ?? isoDateOffset(1);
       const backlogLimit = args.backlog_limit ?? 20;
 
-      const [todayDone, todayDropped, todayStillOpen, tomorrowTasks, backlog, allLinks] = await Promise.all([
+      const [todayDone, todayDropped, todayStillOpen, tomorrowTasks, backlog] = await Promise.all([
         sbSelect<Task>("tasks", `status=eq.done&due_date=eq.${today}`, "priority.asc"),
         sbSelect<Task>("tasks", `status=eq.dropped&due_date=eq.${today}`, "priority.asc"),
         sbSelect<Task>("tasks", `status=eq.open&due_date=eq.${today}`, "priority.asc"),
@@ -93,30 +65,17 @@ export function registerPlanTomorrowContextTool(server: McpServer): void {
           `status=eq.open&or=(due_date.is.null,due_date.gt.${tomorrow})&limit=${backlogLimit}`,
           "priority.asc,due_date.asc.nullslast",
         ),
-        sbSelect<{ source_id: string; target_id: string }>("task_links"),
       ]);
 
-      // Heuristic for "deferred today": tasks updated today with non-today due_date
-      // are likely deferrals. The deferral_count is the strict signal.
+      // Heuristic for "deferred today": still-open tasks scheduled for today
+      // that have a non-zero deferral_count. The deferral counter is the
+      // strict signal — updated_at alone is too noisy (any edit bumps it).
       const deferred = todayStillOpen.filter((t) => (t.deferral_count ?? 0) > 0);
 
-      const tasksForBatch = tomorrowTasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        priority: t.priority,
-      }));
-      const linkBatches = detectLinkBatches(tasksForBatch, allLinks);
-      const batches = linkBatches.map((b) => ({ ...b, suggestion: formatBatchSuggestion(b) }));
+      const batches = await buildLinkBatches(tomorrowTasks);
+      const escalations = buildEscalationItems(tomorrowTasks);
 
-      const escalationCandidates = filterEscalationCandidates(tomorrowTasks);
-      const escalations = escalationCandidates.map((t) => ({
-        task_id: t.id,
-        title: t.title,
-        deferral_count: t.deferral_count ?? 0,
-        prompt: escalationMessage(t),
-      }));
-
-      const output: PlanTomorrowContext = {
+      return toolResult({
         today,
         tomorrow,
         today_recap: {
@@ -129,12 +88,7 @@ export function registerPlanTomorrowContextTool(server: McpServer): void {
         backlog,
         escalations,
         batches,
-      };
-
-      return {
-        content: [{ type: "text", text: JSON.stringify(output) }],
-        structuredContent: output as unknown as Record<string, unknown>,
-      };
+      });
     },
   );
 }

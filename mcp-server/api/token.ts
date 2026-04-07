@@ -21,28 +21,60 @@ import {
 } from "../src/auth/store.js";
 import { verifyPkce } from "../src/auth/pkce.js";
 import { signAccessToken } from "../src/auth/jwt.js";
-import { getMcpResourceUrl, getDefaultSubject, getDefaultScope } from "../src/config.js";
+import { getMcpResourceUrl, getDefaultScope } from "../src/config.js";
+import { parseFormBody } from "../src/util/form-body.js";
 
-const REFRESH_TTL_DAYS = 30;
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function parseBody(req: VercelRequest): Record<string, string> {
-  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(req.body)) {
-      if (typeof v === "string") out[k] = v;
-    }
-    return out;
-  }
-  if (typeof req.body === "string") {
-    const out: Record<string, string> = {};
-    for (const [k, v] of new URLSearchParams(req.body).entries()) out[k] = v;
-    return out;
-  }
-  return {};
+interface GrantContext {
+  client_id: string;
+  subject: string;
+  scope: string | null;
+  resource: string | null;
 }
 
 function err(res: VercelResponse, status: number, error: string, description: string): void {
   res.status(status).json({ error, error_description: description });
+}
+
+/** Issue a new opaque refresh token row, return its ID. */
+async function issueRefreshToken(ctx: GrantContext): Promise<string> {
+  const tokenId = randomBytes(32).toString("base64url");
+  await createRefreshToken({
+    token_id: tokenId,
+    client_id: ctx.client_id,
+    subject: ctx.subject,
+    scope: ctx.scope,
+    resource: ctx.resource,
+    expires_at: new Date(Date.now() + REFRESH_TTL_MS).toISOString(),
+  });
+  return tokenId;
+}
+
+/** Build the standard {access_token, refresh_token, ...} response body. */
+async function issueTokenBundle(ctx: GrantContext): Promise<{
+  access_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}> {
+  const audience = ctx.resource ?? getMcpResourceUrl();
+  const { token, expiresIn } = await signAccessToken({
+    subject: ctx.subject,
+    scope: ctx.scope ?? getDefaultScope(),
+    clientId: ctx.client_id,
+    resource: ctx.resource ?? undefined,
+    audience,
+  });
+  const refreshTokenId = await issueRefreshToken(ctx);
+  return {
+    access_token: token,
+    token_type: "Bearer",
+    expires_in: expiresIn,
+    refresh_token: refreshTokenId,
+    scope: ctx.scope ?? getDefaultScope(),
+  };
 }
 
 async function handleAuthorizationCodeGrant(body: Record<string, string>, res: VercelResponse): Promise<void> {
@@ -65,33 +97,13 @@ async function handleAuthorizationCodeGrant(body: Record<string, string>, res: V
 
   await consumeCode(code);
 
-  const audience = stored.resource ?? getMcpResourceUrl();
-  const { token: accessToken, expiresIn } = await signAccessToken({
-    subject: stored.subject,
-    scope: stored.scope ?? getDefaultScope(),
-    clientId: stored.client_id,
-    resource: stored.resource ?? undefined,
-    audience,
-  });
-
-  const refreshTokenId = randomBytes(32).toString("base64url");
-  const refreshExpires = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  await createRefreshToken({
-    token_id: refreshTokenId,
+  const bundle = await issueTokenBundle({
     client_id: stored.client_id,
     subject: stored.subject,
-    scope: stored.scope ?? null,
-    resource: stored.resource ?? null,
-    expires_at: refreshExpires,
+    scope: stored.scope,
+    resource: stored.resource,
   });
-
-  res.status(200).json({
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: expiresIn,
-    refresh_token: refreshTokenId,
-    scope: stored.scope ?? getDefaultScope(),
-  });
+  res.status(200).json(bundle);
 }
 
 async function handleRefreshTokenGrant(body: Record<string, string>, res: VercelResponse): Promise<void> {
@@ -105,36 +117,17 @@ async function handleRefreshTokenGrant(body: Record<string, string>, res: Vercel
   if (new Date(stored.expires_at).getTime() < Date.now()) return err(res, 400, "invalid_grant", "refresh_token expired");
   if (stored.client_id !== client_id) return err(res, 400, "invalid_grant", "client_id mismatch");
 
-  // Rotate
-  await revokeRefreshToken(refresh_token);
-
-  const audience = stored.resource ?? getMcpResourceUrl();
-  const { token: accessToken, expiresIn } = await signAccessToken({
-    subject: stored.subject,
-    scope: stored.scope ?? getDefaultScope(),
-    clientId: stored.client_id,
-    resource: stored.resource ?? undefined,
-    audience,
-  });
-
-  const newRefreshId = randomBytes(32).toString("base64url");
-  const refreshExpires = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  await createRefreshToken({
-    token_id: newRefreshId,
-    client_id: stored.client_id,
-    subject: stored.subject,
-    scope: stored.scope,
-    resource: stored.resource,
-    expires_at: refreshExpires,
-  });
-
-  res.status(200).json({
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: expiresIn,
-    refresh_token: newRefreshId,
-    scope: stored.scope ?? getDefaultScope(),
-  });
+  // Rotate: revoke old + issue new in parallel (different rows, no need to serialize).
+  const [, bundle] = await Promise.all([
+    revokeRefreshToken(refresh_token),
+    issueTokenBundle({
+      client_id: stored.client_id,
+      subject: stored.subject,
+      scope: stored.scope,
+      resource: stored.resource,
+    }),
+  ]);
+  res.status(200).json(bundle);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -144,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const body = parseBody(req);
+  const body = parseFormBody(req);
   const grantType = body.grant_type;
 
   try {

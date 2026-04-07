@@ -2,9 +2,8 @@
  * Module-level McpServer instance with all tools registered.
  *
  * Constructed once per cold start. Tool registration is idempotent and runs
- * inline at module load — no async setup. Tools are registered in stages
- * during the build; until then this server has zero tools and only responds
- * to `initialize` and `tools/list` (which returns an empty array).
+ * inline at module load — no async setup, no I/O. Read-only tools are
+ * registered before mutations so they appear first in tools/list responses.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

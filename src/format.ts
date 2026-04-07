@@ -24,6 +24,26 @@ export function shortId(id: string): string {
   return id.slice(0, 8);
 }
 
+/** YYYY-MM-DD for a given date in the local timezone. Defaults to now. */
+export function isoDate(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** YYYY-MM-DD for today, local timezone. */
+export function todayIso(): string {
+  return isoDate();
+}
+
+/** YYYY-MM-DD for today + N days, local timezone. */
+export function isoDateOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return isoDate(d);
+}
+
 export function formatDate(d: string | null): string {
   if (!d) return "";
   const date = new Date(d);
