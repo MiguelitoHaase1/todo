@@ -1,7 +1,0 @@
-{
-  "name": "todolist-pwa",
-  "private": true,
-  "scripts": {
-    "build": "node build.mjs"
-  }
-}
