@@ -10,7 +10,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { getPublicUrl } from "../config.js";
 
-const TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
+const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 // Secret is fetched once per cold start and cached for the life of the worker.
 // Reading process.env + TextEncoder.encode on every request is wasted CPU on
