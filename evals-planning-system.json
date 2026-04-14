@@ -1,0 +1,245 @@
+{
+  "meta": {
+    "strategy_slug": "planning-system",
+    "generated": "2026-03-30T00:00:00Z",
+    "version": "1.1.0",
+    "updated": "2026-04-14T00:00:00Z — added ps-010 (Right tasks for the day)"
+  },
+  "coverage": {
+    "total_principles": 10,
+    "principles_with_evals": 10,
+    "coverage_ratio": 1.0
+  },
+  "behavioral_evals": [
+    {
+      "id": "ps-001",
+      "principle": "One priority per day",
+      "statement": "The stated daily priority matches the majority of completed P1/P2 work",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.80,
+      "baseline": null,
+      "measurement": "days where priority topic aligns with >=50% of completed P1/P2 tasks / total planned days",
+      "success_criteria": "Score of 0.80 or higher over rolling 7 days",
+      "grader": "llm",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "Priority stated but all completed work is unrelated obligations",
+          "expected_score": 0.0
+        },
+        {
+          "statement": "No priority stated for the day",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-002",
+      "principle": "Higher priority = earlier scheduling",
+      "statement": "P0/P1 tasks are scheduled in the deep work window (before 12:00)",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.90,
+      "baseline": null,
+      "measurement": "P0/P1 tasks scheduled before 12:00 / total P0/P1 tasks in plan",
+      "success_criteria": "Score of 0.90 or higher over rolling 7 days",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "P1 task scheduled at 19:30 while P3 task occupies 09:00 slot",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-003",
+      "principle": "Family time protection",
+      "statement": "No tasks are scheduled during the 17:00-19:30 family time block",
+      "type": "behavioral",
+      "score_type": "binary",
+      "target": 1.00,
+      "baseline": null,
+      "measurement": "days with no tasks in 17:00-19:30 / total planned days",
+      "success_criteria": "Score of 1.00 — zero violations",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "Task scheduled at 17:30 because calendar showed no conflict",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-004",
+      "principle": "No silent drops",
+      "statement": "Every task that leaves the plan gets an explicit decision (done, dropped, or deferred)",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.95,
+      "baseline": null,
+      "measurement": "tasks with explicit status change event / tasks that were on plan but not completed",
+      "success_criteria": "Score of 0.95 or higher over rolling 7 days",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "Task was on yesterday's plan, not completed, and has no status_changed or deferred event",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-005",
+      "principle": "Tunnel vision detection",
+      "statement": "When the same priority topic runs 3+ consecutive days, it is flagged",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.80,
+      "baseline": null,
+      "measurement": "tunnel vision patterns flagged / tunnel vision patterns present",
+      "success_criteria": "Score of 0.80 or higher — most streaks get noticed",
+      "grader": "llm",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "Same priority for 5 consecutive days with no flag or mention",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-006",
+      "principle": "Deferral escalation",
+      "statement": "Tasks deferred 3+ times are surfaced for human review (drop or promote)",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 1.00,
+      "baseline": null,
+      "measurement": "tasks with 3+ deferred events that were surfaced / tasks with 3+ deferred events",
+      "success_criteria": "Score of 1.00 — every chronic deferral gets reviewed",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "Task deferred 5 times silently without ever being flagged",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-007",
+      "principle": "Completion by priority tier",
+      "statement": "P0/P1 tasks complete same day, P2 tasks complete within the week",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.85,
+      "baseline": null,
+      "measurement": "composite: (P0/P1 done same day rate * 0.6) + (P2 done within 7 days rate * 0.4)",
+      "success_criteria": "Composite score of 0.85 or higher over rolling 14 days",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "P1 task created Monday, still open Friday",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-008",
+      "principle": "Planning routine consistency",
+      "statement": "The plan-tomorrow flow runs on most weekday evenings",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.80,
+      "baseline": null,
+      "measurement": "weekdays with a plan-tomorrow session (context.md Tomorrow Draft entry) / total weekdays in window",
+      "success_criteria": "Score of 0.80 or higher — 4 out of 5 weekdays planned",
+      "grader": "code",
+      "quality_tier": 2,
+      "negative_cases": [
+        {
+          "statement": "No planning sessions for an entire week",
+          "expected_score": 0.0
+        }
+      ]
+    },
+    {
+      "id": "ps-009",
+      "principle": "Plan realism",
+      "statement": "The day's plan is achievable — completion rate stays healthy",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.75,
+      "baseline": null,
+      "measurement": "rolling 7-day average of (tasks completed / tasks planned for that day)",
+      "success_criteria": "Score of 0.75 or higher — plans are realistic, not aspirational",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "8 tasks planned daily but only 3 completed on average",
+          "expected_score": 0.375
+        },
+        {
+          "statement": "2 tasks planned and 2 completed (100% but underloaded)",
+          "expected_score": 1.0
+        }
+      ]
+    },
+    {
+      "id": "ps-010",
+      "principle": "Right tasks for the day",
+      "statement": "The day's plan names the tasks Michael actually completes — synthesis correctly picks from backlog, overdue, and diary history given calendar, priority, and available time.",
+      "type": "behavioral",
+      "score_type": "continuous",
+      "target": 0.75,
+      "baseline": null,
+      "measurement": "rolling 7-day average of |planned ∩ completed| / |completed|. Completed pulled from Supabase task events with status=done on that date. Planned pulled from shipped context.md Priorities entry for that date.",
+      "success_criteria": "Score of 0.75 or higher over rolling 7 days",
+      "grader": "code",
+      "quality_tier": 3,
+      "negative_cases": [
+        {
+          "statement": "5 tasks planned, 4 completed — but 3 of the completed 4 were unplanned tasks added mid-day",
+          "expected_score": 0.25
+        },
+        {
+          "statement": "Plan ignored a task deferred 3 days in a row; Michael did it anyway first thing in the morning",
+          "expected_score": 0.5
+        },
+        {
+          "statement": "Plan had 8 tasks, 6 got done, all 6 were on the plan (right tasks even if overloaded)",
+          "expected_score": 1.0
+        },
+        {
+          "statement": "Plan listed only meetings, no active work tasks — completed set was all project work Michael picked himself",
+          "expected_score": 0.0
+        }
+      ]
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "ps-guard-001",
+      "source": "planning-principles",
+      "statement": "Family time block (17:00-19:30) is never violated",
+      "fail_condition": "Any task scheduled or completed during 17:00-19:30",
+      "measurement": "Count of task_events with timestamps in protected window",
+      "target": 0,
+      "grader": "code"
+    },
+    {
+      "id": "ps-guard-002",
+      "source": "planning-principles",
+      "statement": "No task is silently removed from a plan without a status change",
+      "fail_condition": "Task on plan yesterday, not on plan today, no event logged",
+      "measurement": "Count of orphaned plan items with no corresponding event",
+      "target": 0,
+      "grader": "code"
+    }
+  ]
+}
