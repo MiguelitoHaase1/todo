@@ -10,9 +10,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   shouldEscalateDeferral,
+  shouldForceDecision,
   escalationMessage,
+  forceDecisionMessage,
   markDeferred,
   filterEscalationCandidates,
+  filterForceDecisionCandidates,
 } from "./deferral.ts";
 
 // Minimal task shape for these tests
@@ -113,5 +116,80 @@ describe("filterEscalationCandidates", () => {
       makeTask({ deferral_count: 1 }),
     ];
     assert.deepEqual(filterEscalationCandidates(tasks), []);
+  });
+});
+
+// --- shouldForceDecision (threshold=3) ---
+
+describe("shouldForceDecision", () => {
+  it("returns false when deferral_count is 0", () => {
+    assert.equal(shouldForceDecision(makeTask({ deferral_count: 0 })), false);
+  });
+
+  it("returns false when deferral_count is 2 (escalated but not forced)", () => {
+    assert.equal(shouldForceDecision(makeTask({ deferral_count: 2 })), false);
+  });
+
+  it("returns true when deferral_count is exactly 3 (threshold)", () => {
+    assert.equal(shouldForceDecision(makeTask({ deferral_count: 3 })), true);
+  });
+
+  it("returns true when deferral_count is 5 (well above threshold)", () => {
+    assert.equal(shouldForceDecision(makeTask({ deferral_count: 5 })), true);
+  });
+
+  it("handles missing deferral_count as 0", () => {
+    const task = { id: "x", title: "t" } as { id: string; title: string; deferral_count?: number };
+    assert.equal(shouldForceDecision(task), false);
+  });
+});
+
+// --- forceDecisionMessage ---
+
+describe("forceDecisionMessage", () => {
+  it("says 'Force decision' explicitly", () => {
+    const msg = forceDecisionMessage(makeTask({ deferral_count: 3 }));
+    assert.ok(msg.toLowerCase().includes("force decision"), `Expected 'force decision' in: ${msg}`);
+  });
+
+  it("includes the task title", () => {
+    const msg = forceDecisionMessage(makeTask({ title: "Ship PRD", deferral_count: 4 }));
+    assert.ok(msg.includes("Ship PRD"), `Expected title in: ${msg}`);
+  });
+
+  it("includes the deferral count", () => {
+    const msg = forceDecisionMessage(makeTask({ deferral_count: 4 }));
+    assert.ok(msg.includes("4"), `Expected count '4' in: ${msg}`);
+  });
+
+  it("asks the user to pull in or drop", () => {
+    const msg = forceDecisionMessage(makeTask({ deferral_count: 3 })).toLowerCase();
+    assert.ok(msg.includes("pull in") || msg.includes("drop"), `Expected pull-in/drop guidance in: ${msg}`);
+  });
+});
+
+// --- filterForceDecisionCandidates ---
+
+describe("filterForceDecisionCandidates", () => {
+  it("returns only tasks at or above deferral_count=3", () => {
+    const tasks = [
+      makeTask({ id: "a", deferral_count: 0 }),
+      makeTask({ id: "b", deferral_count: 2 }),
+      makeTask({ id: "c", deferral_count: 3 }),
+      makeTask({ id: "d", deferral_count: 7 }),
+    ];
+    const candidates = filterForceDecisionCandidates(tasks);
+    assert.deepEqual(
+      candidates.map((t) => t.id),
+      ["c", "d"],
+    );
+  });
+
+  it("returns empty when nothing crosses the threshold", () => {
+    const tasks = [
+      makeTask({ deferral_count: 0 }),
+      makeTask({ deferral_count: 2 }),
+    ];
+    assert.deepEqual(filterForceDecisionCandidates(tasks), []);
   });
 });
