@@ -13,6 +13,7 @@ import { parseArgs } from "node:util";
 import { cmdAdd } from "./commands/add.ts";
 import { cmdList } from "./commands/list.ts";
 import { cmdDone } from "./commands/done.ts";
+import { cmdEdit } from "./commands/edit.ts";
 import { cmdShow } from "./commands/show.ts";
 import { cmdTriage } from "./commands/triage.ts";
 import { cmdLink } from "./commands/link.ts";
@@ -24,6 +25,7 @@ Commands:
   td add "title" [-p 0-4] [--due YYYY-MM-DD]   Create a task
   td list [--today] [--due DATE] [--status ...]   List tasks
   td done <id>                                   Mark task complete
+  td edit <id> [--title ...] [-d ...] [-p 0-4] [--due DATE]   Update a task
   td show <id>                                   Show task details
   td triage                                      Surface tasks to triage
   td triage exec "drop 1, defer 2"               Execute a triage reply
@@ -56,6 +58,9 @@ async function main() {
       break;
     case "done":
       await cmdDone(rest);
+      break;
+    case "edit":
+      await cmdEdit(rest);
       break;
     case "show":
       await cmdShow(rest);
