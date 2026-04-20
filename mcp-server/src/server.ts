@@ -10,6 +10,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerListTool } from "./tools/list.js";
 import { registerAddTool } from "./tools/add.js";
 import { registerDoneTool } from "./tools/done.js";
+import { registerDropTool } from "./tools/drop.js";
 import { registerEditTool } from "./tools/edit.js";
 import { registerShowTool } from "./tools/show.js";
 import { registerLinkTool } from "./tools/link.js";
@@ -34,6 +35,7 @@ registerPlanTomorrowContextTool(server);
 // Mutations
 registerAddTool(server);
 registerDoneTool(server);
+registerDropTool(server);
 registerEditTool(server);
 registerLinkTool(server);
 registerUnlinkTool(server);
