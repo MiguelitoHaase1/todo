@@ -10,7 +10,7 @@ import { toolResult } from "../util/result.js";
 
 const InputSchema = {
   title: z.string().min(1).max(500).describe("Task title."),
-  description: z.string().max(2000).optional().describe("Optional longer description."),
+  description: z.string().max(20000).optional().describe("Optional longer description (markdown supported; up to 20000 chars)."),
   priority: PrioritySchema.default(3).optional(),
   due_date: IsoDateSchema.optional().describe("Optional due date in YYYY-MM-DD."),
 };
