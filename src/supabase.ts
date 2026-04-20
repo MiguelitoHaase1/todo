@@ -106,7 +106,7 @@ export async function sbDelete(
 
 export interface TaskEvent {
   task_id: string;
-  event_type: "created" | "status_changed" | "priority_changed" | "deferred" | "due_date_set" | "title_changed";
+  event_type: "created" | "status_changed" | "priority_changed" | "deferred" | "due_date_set" | "title_changed" | "description_changed";
   previous_value?: string | null;
   new_value?: string | null;
   source: "cli" | "imessage" | "discord" | "pwa" | "morning" | "triage" | "plan_tomorrow" | "mcp";
