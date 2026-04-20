@@ -22,6 +22,22 @@ function headers(key: string): Record<string, string> {
   };
 }
 
+/**
+ * Sanitize PostgREST error responses. Raw bodies contain table/column/
+ * constraint names and leak schema detail to anyone who can trigger an
+ * error — including remote MCP clients. Log the detail via stderr for
+ * local debugging; surface a generic Error upstream.
+ */
+async function sanitizedError(
+  verb: "GET" | "POST" | "PATCH" | "DELETE",
+  table: string,
+  res: Response,
+): Promise<Error> {
+  const body = await res.text().catch(() => "<unavailable>");
+  console.error(`[supabase] ${verb} ${table} failed: ${res.status} ${body}`);
+  return new Error(`Supabase ${verb} ${table} failed (status ${res.status})`);
+}
+
 export async function sbSelect<T>(
   table: string,
   query = "",
@@ -34,7 +50,7 @@ export async function sbSelect<T>(
     headers: headers(key),
   });
   if (!res.ok) {
-    throw new Error(`Supabase GET ${table}: ${res.status} ${await res.text()}`);
+    throw await sanitizedError("GET", table, res);
   }
   return res.json();
 }
@@ -50,7 +66,7 @@ export async function sbInsert<T>(
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    throw new Error(`Supabase POST ${table}: ${res.status} ${await res.text()}`);
+    throw await sanitizedError("POST", table, res);
   }
   const rows = await res.json();
   return Array.isArray(rows) ? rows[0] : rows;
@@ -68,7 +84,7 @@ export async function sbUpdate<T>(
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    throw new Error(`Supabase PATCH ${table}: ${res.status} ${await res.text()}`);
+    throw await sanitizedError("PATCH", table, res);
   }
   const rows = await res.json();
   return Array.isArray(rows) ? rows[0] : rows;
@@ -84,7 +100,7 @@ export async function sbDelete(
     headers: headers(key),
   });
   if (!res.ok) {
-    throw new Error(`Supabase DELETE ${table}: ${res.status} ${await res.text()}`);
+    throw await sanitizedError("DELETE", table, res);
   }
 }
 
