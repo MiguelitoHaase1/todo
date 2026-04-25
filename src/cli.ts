@@ -16,6 +16,7 @@ import { cmdDone } from "./commands/done.ts";
 import { cmdEdit } from "./commands/edit.ts";
 import { cmdShow } from "./commands/show.ts";
 import { cmdTriage } from "./commands/triage.ts";
+import { cmdGroom } from "./commands/groom.ts";
 import { cmdLink } from "./commands/link.ts";
 import { cmdUnlink } from "./commands/unlink.ts";
 
@@ -29,6 +30,8 @@ Commands:
   td show <id>                                   Show task details
   td triage                                      Surface tasks to triage
   td triage exec "drop 1, defer 2"               Execute a triage reply
+  td groom [N]                                   Surface N oldest undated tasks with proposals
+  td groom exec "1 drop, 2 soon:tue"             Execute a groom reply
   td link <a> <b> [--type=related|parent]         Link two tasks
   td unlink <a> <b>                               Remove a link
 
@@ -67,6 +70,9 @@ async function main() {
       break;
     case "triage":
       await cmdTriage(rest);
+      break;
+    case "groom":
+      await cmdGroom(rest);
       break;
     case "link":
       await cmdLink(rest);

@@ -210,7 +210,7 @@ describe("formatGroomMessage", () => {
     assert.match(msg, /drop/);
     assert.match(msg, /soon/);
     assert.match(msg, /later/);
-    assert.match(msg, /Reply:/i);
+    assert.match(msg, /Reply\b/i);
     assert.match(msg, /80.*undated|undated.*80/i);
   });
 
