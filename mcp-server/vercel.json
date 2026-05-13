@@ -1,10 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/mcp.ts": { "maxDuration": 30 },
-    "api/authorize.ts": { "maxDuration": 10 },
-    "api/token.ts": { "maxDuration": 10 },
-    "api/register.ts": { "maxDuration": 10 }
+    "api/mcp.ts": {
+      "maxDuration": 30
+    },
+    "api/authorize.ts": {
+      "maxDuration": 10
+    },
+    "api/token.ts": {
+      "maxDuration": 10
+    },
+    "api/register.ts": {
+      "maxDuration": 10
+    }
   },
   "rewrites": [
     {
@@ -15,5 +23,8 @@
       "source": "/.well-known/oauth-authorization-server",
       "destination": "/api/well-known/oauth-authorization-server"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }
