@@ -1,0 +1,22 @@
+{
+  "name": "td",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "td": "./bin/td.mjs"
+  },
+  "scripts": {
+    "td": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}
