@@ -7,10 +7,14 @@ logs
 npm-debug.log*
 
 # Dependencies
-node_modules/
-dist/
-.next/
-.turbo/
+#
+# NO TRAILING SLASHES on these. Heavy state in this vault lives in ~/AI-local/ behind symlinks, and
+# node_modules here IS one. A `foo/` pattern matches directories only — git sees a symlink as a file,
+# so `node_modules/` silently failed to ignore it and every status listed it as untracked.
+node_modules
+dist
+.next
+.turbo
 
 # Editor / OS
 .DS_Store
@@ -25,9 +29,9 @@ dist/
 .env.*
 !.env.example
 
-# Build artifacts
+# Build artifacts (slashless for the same reason as above)
 *.tsbuildinfo
-coverage/
+coverage
 bun.lockb
 
 # Playwright debug
