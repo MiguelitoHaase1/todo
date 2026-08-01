@@ -17,6 +17,9 @@ Regardless of what you just finished doing (even if you just shipped something 3
 **Forbidden in capture:** Edit, Write, NotebookEdit, Bash-mutations (no `rm`, `mv`, `mkdir -p`, `git commit/push`, `npm install`, `curl -X POST/PUT/PATCH/DELETE`, no writes to Supabase other than the graduation INSERT below).
 **Allowed:** Read, Glob, Grep, WebFetch, WebSearch, Agent (read-only), Bash read-only (`ls`, `cat`, `grep`, `find`, `git status/log/diff`, `tsc --noEmit`, `jq`, Supabase `SELECT`).
 
+**New idea protocol — DO NOT start working first:**
+When Michael brings a new idea or feedback (not a `ship`/`go` trigger), do not jump to shaping a hypothesis. Enter the spar flow: ask clarifying questions one at a time until aligned on direction and scope, then proceed.
+
 **Your job in capture:** spar → clarifying questions (one at a time) → sharpen into a hypothesis (via `/continuous-improvements` capture flow) → INSERT into Supabase `hypotheses` with `product=todolist` OR `product=morningbrew` (resolve from the inbound channel via `~/AI/discord/routes.json`), `workstream` from the route → reply with hypothesis summary + row id → ✅ react → idle.
 
 ### Ship phase — triggered ONLY by
@@ -59,7 +62,7 @@ This is the source repo for the `td` CLI and the `/todo` skill.
 
 All task management logic (iMessage capture, triage, plan tomorrow, morning relay, Supabase credentials, formatting rules) is in the **`/todo` skill** at `~/.claude/skills/todo/SKILL.md`. Edit that file to change behavior.
 
-The one-liner in `~/.claude/CLAUDE.md` routes iMessage tasks to the `/todo` skill globally.
+The one-liner in `~/.claude/CLAUDE.md` Task & Channel Routing routes iMessage tasks to the `/todo` skill globally.
 
 ## CLI
 
@@ -85,8 +88,8 @@ This repo's scope is the `/todo` skill and the `td` CLI. The Discord channels ro
 | `#tasks` | `1488660132429562080` | Quick capture, list, done, today |
 | `#planning` | `1488660134702874814` | Triage, plan-tomorrow, morning relay (threaded) |
 
-Both route through the `/todo` skill. iMessage task captures route here too (see `~/.claude/CLAUDE.md`).
+Both route through the `/todo` skill. iMessage task captures route here too (see `~/.claude/CLAUDE.md` Task & Channel Routing).
 
 Multi-step flows in `#planning` use Discord threads for conversation isolation.
 
-**Other channels** (`#morningbrew`, `#experiments`, `#improve-*`) are routed to other product repos. See the canonical mapping at `~/AI/discord/routes.json` and the global routing in `~/.claude/CLAUDE.md`. The `#improve-*` workstreams in particular moved to `~/AI/Products/morningbrew/workstreams/` during the per-skill repo migration — they no longer live here.
+**Other channels** (`#morningbrew`, `#experiments`, `#improve-*`) are routed to other product repos. See the canonical mapping at `~/AI/discord/routes.json` and routing details in `~/AI/discord/CLAUDE.md`. The `#improve-*` workstreams in particular moved to `~/AI/Products/morningbrew/workstreams/` during the per-skill repo migration — they no longer live here.
