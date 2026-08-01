@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strategy Dashboard — Live View</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #FAF9F6;
+      --bg-sidebar: #F0EEDF;
+      --text: #1A1A1A;
+      --text-secondary: #5a5a5e;
+      --text-muted: #9a9a9e;
+      --accent: #D97757;
+      --accent-light: rgba(217, 119, 87, 0.12);
+      --accent-lighter: rgba(217, 119, 87, 0.06);
+      --accent-dark: #c4603f;
+      --border: #d8d5c8;
+      --card-bg: #ffffff;
+      --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --card-shadow-hover: 0 8px 24px rgba(0,0,0,0.1);
+      --priority-now: #2d8a4e;
+      --priority-later: #b5850a;
+      --priority-never: #c53030;
+      --font-serif: 'Source Serif 4', Georgia, serif;
+      --font-sans: 'Inter', -apple-system, sans-serif;
+      --sidebar-w: 272px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      padding: 36px 24px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 48px 60px 120px;
+      overflow-y: auto;
+      max-width: 960px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .sidebar-date {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .stepper {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .act-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+      margin-top: 4px;
+      padding-left: 30px;
+    }
+
+    .act-label:first-child {
+      margin-top: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      cursor: pointer;
+    }
+
+    .step:hover .step-label {
+      color: var(--accent-dark);
+    }
+
+    .step-track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 16px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .step-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot.complete {
+      background: var(--accent);
+    }
+
+    .step-dot.current {
+      border: 2.5px solid var(--accent);
+      background: var(--bg-sidebar);
+      position: relative;
+    }
+
+    .step-dot.current::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .step-dot.upcoming {
+      border: 2px solid var(--border);
+      background: var(--bg-sidebar);
+    }
+
+    .step-line {
+      width: 2px;
+      flex: 1;
+      min-height: 20px;
+      margin: 4px 0;
+    }
+
+    .step[data-status="complete"] .step-line {
+      background: var(--accent);
+    }
+
+    .step[data-status="current"] .step-line,
+    .step[data-status="upcoming"] .step-line {
+      background: var(--border);
+    }
+
+    .step-info {
+      padding-bottom: 22px;
+      min-width: 0;
+    }
+
+    .step-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      transition: color 150ms;
+    }
+
+    .step[data-status="upcoming"] .step-label {
+      color: var(--text-muted);
+    }
+
+    .step-summary {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Content Header ── */
+    .strategy-header {
+      margin-bottom: 24px;
+    }
+
+    .strategy-name {
+      font-family: var(--font-serif);
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .strategy-meta {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Tenets Bar ── */
+    .tenets-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 56px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tenets-bar-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .tenets-counts {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .tenet-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .tenet-badge .tenet-count {
+      background: var(--accent);
+      color: #fff;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tenets-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .tenets-principles {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .principle-pill {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .tenets-empty {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Phase Section ── */
+    .phase-section {
+      margin-bottom: 64px;
+      transition: opacity 300ms ease;
+    }
+
+    .phase-section[data-status="upcoming"] {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* ── Tree Area ── */
+    .tree-area {
+      position: relative;
+    }
+
+    /* ── Root Node ── */
+    .root-node {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px 24px;
+      max-width: 420px;
+      margin: 0 auto 0;
+    }
+
+    .root-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .root-question {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    /* ── Branching Logic ── */
+    .branching-logic {
+      max-width: 600px;
+      margin: 20px auto 0;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .branching-logic-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .branching-logic p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      font-style: italic;
+      margin: 0;
+    }
+
+    /* ── SVG Connectors ── */
+    .connectors {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .connectors path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      opacity: 0.35;
+    }
+
+    .phase-section[data-status="upcoming"] .connectors path {
+      opacity: 0.15;
+    }
+
+    /* ── Options Grid ── */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 16px;
+      margin-top: 80px;
+    }
+
+    .upcoming-placeholder {
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 32px;
+      font-style: italic;
+    }
+
+    /* ── Option Card ── */
+    .option-card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+    }
+
+    .phase-section[data-status="current"] .option-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+      border-color: var(--accent);
+    }
+
+    /* Priority left borders */
+    .option-card[data-priority="now"] {
+      border-left: 4px solid var(--priority-now);
+    }
+
+    .option-card[data-priority="later"] {
+      border-left: 4px solid var(--priority-later);
+    }
+
+    .option-card[data-priority="never"] {
+      border-left: 4px solid var(--priority-never);
+    }
+
+    /* Selected state */
+    .option-card.selected {
+      border-color: var(--accent);
+      border-width: 2px;
+      background: var(--accent-lighter);
+    }
+
+    .option-card.selected[data-priority="now"]   { border-left-color: var(--priority-now); }
+    .option-card.selected[data-priority="later"] { border-left-color: var(--priority-later); }
+    .option-card.selected[data-priority="never"] { border-left-color: var(--priority-never); }
+
+    .phase-section[data-status="complete"] .option-card:not(.selected) {
+      opacity: 0.5;
+    }
+
+    .option-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      transition: background 150ms, border-color 150ms, color 150ms;
+    }
+
+    .option-card.selected .option-badge {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .option-title {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .option-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .check-icon {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 20px;
+      height: 20px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+      transition: opacity 150ms;
+    }
+
+    .option-card.selected .check-icon {
+      opacity: 1;
+    }
+
+    /* ── Priority Legend ── */
+    .priority-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .priority-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .priority-legend-swatch {
+      width: 12px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    /* ── Decision Block ── */
+    .decision-block {
+      background: var(--accent-lighter);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      padding: 20px 24px;
+      margin-top: 28px;
+    }
+
+    .decision-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .decision-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .decision-rationale {
+      list-style: none;
+    }
+
+    .decision-rationale li {
+      position: relative;
+      padding-left: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .decision-rationale li + li {
+      margin-top: 4px;
+    }
+
+    .decision-rationale li::before {
+      content: '\2014';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .sidebar { width: 232px; padding: 28px 18px; }
+      .content { margin-left: 232px; padding: 36px 32px 100px; }
+      :root { --sidebar-w: 232px; }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 24px 20px 80px; }
+      .strategy-name { font-size: 28px; }
+      .options-grid { grid-template-columns: 1fr; }
+      .tenets-bar { flex-direction: column; align-items: flex-start; }
+      .tenets-divider { width: 100%; height: 1px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content" id="content"></main>
+  </div>
+
+  <script>
+    // === JOURNEY_DATA_START ===
+    const JOURNEY_DATA = {
+      name: "Todolist",
+      date: "2026-03-25",
+      context: "A self-owned task system that replaces Todoist — powers morning planning, integrates with Claude Code, and brings intelligence to daily prioritization.",
+      currentPhase: "complete",
+      tenets: {
+        facts: ["Quick capture is essential", "Evening planning is reshaping, not listing", "Priority tiers work", "Morning Brew already captures completions"],
+        assumptions: ["Linked tasks change how I think about work", "AI can surface better priorities than manual sorting", "Context enrichment fits in the evening ritual"],
+        beliefs: ["Todoist's invisible quality is a real risk", "Single-user software can beat general-purpose tools", "Data model matters more than UI"],
+        principles: ["Landscape over directives", "Frictionless capture over rich input", "Deep integration over standalone value"]
+      },
+      phases: [
+        {
+          id: "discovery",
+          label: "Discovery & Context",
+          act: "Foundation",
+          question: "What are we building?",
+          framingQuestion: "What problem does this solve that Todoist doesn't?",
+          branchingLogic: "",
+          status: "complete",
+          options: [],
+          decision: {
+            title: "Intelligent task system for one user",
+            rationale: [
+              "Todoist is a dumb pipe — tasks go in flat, come out flat. Intelligence lives elsewhere.",
+              "Morning Brew already tracks completions and reflections. Double-entry back to Todoist is waste.",
+              "Tasks have invisible relationships that need AI to surface, not manual tagging.",
+              "Incremental rollout alongside Todoist — prove value, then let it fall away."
+            ]
+          }
+        },
+        {
+          id: "scope",
+          label: "Scope & Vision",
+          act: "Foundation",
+          question: "What does the ideal outcome look like?",
+          framingQuestion: "Where does the intelligence live — and how much surface area does the system need?",
+          branchingLogic: "The core tension is between building a smart backend that powers existing surfaces (Morning Brew, CLI) versus building new surfaces (mobile app, web dashboard) alongside the brain. Each direction trades off speed-to-value against interaction richness.",
+          status: "complete",
+          options: [
+            {
+              id: "A",
+              title: "Smart backend, existing surfaces",
+              description: "Build the intelligent task graph as a data layer and API. The /morning skill and Morning Brew remain the primary interfaces. CLI for quick capture. No new UI.",
+              selected: false,
+              priority: null
+            },
+            {
+              id: "B",
+              title: "Smart backend + lightweight mobile web",
+              description: "Same intelligent backend, but add a simple mobile-friendly web view for browsing, reprioritizing, and checking off tasks on the go. Morning Brew stays the daily operating page.",
+              selected: true,
+              priority: null
+            },
+            {
+              id: "C",
+              title: "Full Todoist replacement with its own app",
+              description: "Build a complete task management web app with its own dashboard, views, filters. Morning Brew becomes one view within the larger system rather than a standalone page.",
+              selected: false,
+              priority: null
+            },
+            {
+              id: "D",
+              title: "AI-first: conversational task management",
+              description: "The system is primarily conversational — you talk to it via Claude Code or chat. It manages tasks, surfaces priorities, and explains its reasoning. Minimal traditional UI.",
+              selected: false,
+              priority: null
+            },
+            {
+              id: "E",
+              title: "Knowledge graph with task layer",
+              description: "Start from your full knowledge repository (notes, reflections, projects) and make tasks emerge from that context. Tasks are nodes in a larger knowledge web, not standalone items.",
+              selected: false,
+              priority: null
+            }
+          ],
+          decision: {
+            title: "Smart backend + lightweight mobile web, evolving toward knowledge graph",
+            rationale: [
+              "The intelligent backend is the core value — task graph with relationships, context, and AI reasoning.",
+              "A lightweight mobile web view fills the gap Todoist leaves for on-the-go browsing and reprioritization.",
+              "Morning Brew stays the daily operating page. No need to rebuild what works.",
+              "Data model should accommodate future evolution toward a knowledge graph without requiring it upfront."
+            ]
+          }
+        },
+        {
+          id: "tenets",
+          label: "Tenets & Principles",
+          act: "Foundation",
+          question: "What are we most certain about?",
+          framingQuestion: "What do you know for sure, and where are you making leaps of faith?",
+          branchingLogic: "Three tensions define this product: how much the AI decides vs. shows, how much context tasks carry at capture vs. later, and how tightly it integrates with Morning Brew vs. standing alone.",
+          status: "complete",
+          options: [
+            {
+              id: "A",
+              title: "Landscape over directives",
+              description: "Show the full picture and let me decide, rather than telling me what to do.",
+              selected: true,
+              priority: null
+            },
+            {
+              id: "B",
+              title: "Frictionless capture over rich input",
+              description: "One-liners in, enrich later during the evening planning ritual.",
+              selected: true,
+              priority: null
+            },
+            {
+              id: "C",
+              title: "Deep integration over standalone",
+              description: "Optimize for /morning + Morning Brew, but keep pieces composable.",
+              selected: true,
+              priority: null
+            }
+          ],
+          decision: {
+            title: "Three Even Over principles established",
+            rationale: [
+              "The system advises, it doesn't command — landscape view with user agency.",
+              "Capture fast, enrich during planning — respects the rhythm of the day.",
+              "Integration is the value — but composable design protects each piece's ability to evolve."
+            ]
+          }
+        },
+        {
+          id: "problem-users",
+          label: "Problem & Users",
+          act: "Construction",
+          question: "Who struggles and what's their journey?",
+          framingQuestion: "What does the full task lifecycle look like — from capture to resolution?",
+          branchingLogic: "Six jobs map to three moments in the day: anytime capture, evening reflection-and-reshaping, and morning planning. The core insight: the evening session should be a conversation with your tasks, not a chore of updating a separate list.",
+          status: "current",
+          options: [
+            {
+              id: 1,
+              title: "Capture a task instantly",
+              description: "When a thought hits — in a meeting, in the car, falling asleep — get it into the system in seconds with minimal friction.",
+              selected: false,
+              priority: "now"
+            },
+            {
+              id: 2,
+              title: "See the full landscape",
+              description: "When sitting down to plan, see everything in one view — relationships, priorities, staleness, groupings — not a flat list.",
+              selected: false,
+              priority: "now"
+            },
+            {
+              id: 3,
+              title: "Reflect and reshape in one flow",
+              description: "When reviewing the day in Morning Brew, the reflection should naturally flow into reshaping tomorrow's tasks — no separate app, no double entry.",
+              selected: false,
+              priority: "now"
+            },
+            {
+              id: 4,
+              title: "Get AI-powered priority suggestions",
+              description: "When planning tomorrow, the system suggests what matters most based on context, reflections, relationships, and patterns — not just due dates.",
+              selected: false,
+              priority: "now"
+            },
+            {
+              id: 5,
+              title: "See task relationships during planning",
+              description: "When reflecting and reshaping, see how tasks connect — grouped work, dependencies, related threads — to think more fluidly about what to tackle together or sequence.",
+              selected: false,
+              priority: "now"
+            },
+            {
+              id: 6,
+              title: "Track task history and evolution",
+              description: "When a task has been deferred five times, understand why. See its full history — when created, how many times moved, what reflections mentioned it.",
+              selected: false,
+              priority: "later"
+            },
+            {
+              id: 7,
+              title: "Browse and reprioritize on mobile",
+              description: "When on the go, quickly scan tasks, bump priorities, check things off — without needing the full planning ritual.",
+              selected: false,
+              priority: "later"
+            },
+            {
+              id: 8,
+              title: "Auto-detect stale and abandoned tasks",
+              description: "When tasks have been pushed repeatedly without action, the system should flag or archive them — clearing the backlog without manual cleanup.",
+              selected: false,
+              priority: "never"
+            }
+          ],
+          decision: {
+            title: "Five Now jobs across three daily moments",
+            rationale: [
+              "Capture, landscape, reflect-and-reshape, AI priorities, and task relationships are the V1.",
+              "Task relationships moved from Later to Now — they're part of the evening reflection, not a separate feature.",
+              "The evening session is the keystone: reflection flows into reshaping flows into tomorrow's plan.",
+              "Mobile browse and task history are real Later jobs. Auto-archiving is Never — violates landscape-over-directives."
+            ]
+          }
+        },
+        {
+          id: "review",
+          label: "Review & Present",
+          act: "Delivery",
+          question: "Does this hold together?",
+          framingQuestion: "Full coherence review against tenets, style pass, and presentation.",
+          branchingLogic: "",
+          status: "complete",
+          options: [],
+          decision: {
+            title: "Strategy complete — coherent and ready for archetype selection",
+            rationale: [
+              "Vision threads through every section — problem is dumb system, solution is intelligent landscape.",
+              "All three principles reflected in JTBD prioritization choices.",
+              "Where-to-play consistent from scope through user experience.",
+              "Highest-risk assumption (AI prioritization) explicitly identified with mitigation."
+            ]
+          }
+        }
+      ]
+    };
+    // === JOURNEY_DATA_END ===
+
+    /* ── Helpers ── */
+
+    var _escEl = document.createElement('div');
+    function esc(str) {
+      if (str == null) return '';
+      _escEl.textContent = String(str);
+      return _escEl.innerHTML;
+    }
+
+    function actNumber(actName) {
+      if (actName === 'Foundation') return 'I';
+      if (actName === 'Construction') return 'II';
+      if (actName === 'Delivery') return 'III';
+      return '';
+    }
+
+    /* ── Sidebar Rendering ── */
+
+    function renderSidebar() {
+      var phases = JOURNEY_DATA.phases;
+      var html = '';
+
+      html += '<div class="sidebar-title">' + esc(JOURNEY_DATA.name) + '</div>';
+      html += '<div class="sidebar-date">' + esc(JOURNEY_DATA.date) + '</div>';
+      html += '<div class="stepper">';
+
+      var lastAct = '';
+
+      for (var i = 0; i < phases.length; i++) {
+        var phase = phases[i];
+        var isLast = i === phases.length - 1;
+
+        // Insert act label when the act changes
+        if (phase.act !== lastAct) {
+          html += '<div class="act-label">Act ' + actNumber(phase.act) + ': ' + esc(phase.act) + '</div>';
+          lastAct = phase.act;
+        }
+
+        html += '<div class="step" data-status="' + phase.status + '" data-phase-id="' + phase.id + '">';
+        html += '  <div class="step-track">';
+        html += '    <div class="step-dot ' + phase.status + '"></div>';
+        if (!isLast) {
+          html += '    <div class="step-line"></div>';
+        }
+        html += '  </div>';
+        html += '  <div class="step-info">';
+        html += '    <div class="step-label">' + esc(phase.label) + '</div>';
+        if (phase.decision) {
+          html += '    <div class="step-summary">' + esc(phase.decision.title) + '</div>';
+        }
+        html += '  </div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    /* ── Tenets Bar Rendering ── */
+
+    function renderTenetsBar() {
+      var t = JOURNEY_DATA.tenets;
+      var factCount = t.facts.length;
+      var assumptionCount = t.assumptions.length;
+      var beliefCount = t.beliefs.length;
+      var principleCount = t.principles.length;
+      var totalCount = factCount + assumptionCount + beliefCount + principleCount;
+
+      var html = '<div class="tenets-bar">';
+      html += '<div class="tenets-bar-label">Tenets</div>';
+
+      if (totalCount === 0) {
+        html += '<div class="tenets-empty">No tenets established yet</div>';
+        html += '</div>';
+        return html;
+      }
+
+      html += '<div class="tenets-counts">';
+      if (factCount > 0) {
+        html += '<span class="tenet-badge">Facts <span class="tenet-count">' + factCount + '</span></span>';
+      }
+      if (assumptionCount > 0) {
+        html += '<span class="tenet-badge">Assumptions <span class="tenet-count">' + assumptionCount + '</span></span>';
+      }
+      if (beliefCount > 0) {
+        html += '<span class="tenet-badge">Beliefs <span class="tenet-count">' + beliefCount + '</span></span>';
+      }
+      html += '</div>';
+
+      if (principleCount > 0) {
+        html += '<div class="tenets-divider"></div>';
+        html += '<div class="tenets-principles">';
+        for (var i = 0; i < t.principles.length; i++) {
+          html += '<span class="principle-pill">' + esc(t.principles[i]) + '</span>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    /* ── Phase Rendering ── */
+
+    function renderPhase(phase) {
+      var hasPriorities = false;
+      for (var k = 0; k < phase.options.length; k++) {
+        if (phase.options[k].priority) { hasPriorities = true; break; }
+      }
+
+      var html = '';
+      html += '<section class="phase-section" data-phase="' + phase.id + '" data-status="' + phase.status + '">';
+      html += '  <div class="tree-area">';
+      html += '    <div class="root-node">';
+      html += '      <div class="root-label">' + esc(phase.label.toUpperCase()) + '</div>';
+      html += '      <div class="root-question">' + esc(phase.question) + '</div>';
+      html += '    </div>';
+
+      if (phase.branchingLogic) {
+        html += '    <div class="branching-logic">';
+        html += '      <span class="branching-logic-label">Why these branches</span>';
+        html += '      <p>' + esc(phase.branchingLogic) + '</p>';
+        html += '    </div>';
+      }
+
+      html += '    <svg class="connectors"></svg>';
+      html += '    <div class="options-grid">';
+
+      if (phase.options.length > 0) {
+        for (var j = 0; j < phase.options.length; j++) {
+          var opt = phase.options[j];
+          var cardClasses = 'option-card';
+          if (opt.selected) cardClasses += ' selected';
+
+          var priorityAttr = opt.priority ? ' data-priority="' + esc(opt.priority) + '"' : '';
+
+          html += '<div class="' + cardClasses + '"' + priorityAttr + ' data-id="' + opt.id + '">';
+          html += '  <div class="option-badge">' + opt.id + '</div>';
+          html += '  <div class="option-title">' + esc(opt.title) + '</div>';
+          html += '  <div class="option-desc">' + esc(opt.description) + '</div>';
+          html += '  <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+          html += '</div>';
+        }
+      } else if (phase.status === 'upcoming') {
+        html += '<div class="upcoming-placeholder">Upcoming</div>';
+      }
+
+      html += '    </div>';
+
+      // Priority legend when at least one option has a priority set
+      if (hasPriorities) {
+        html += '<div class="priority-legend">';
+        html += '  <span class="priority-legend-item"><span class="priority-legend-swatch" style="background:var(--priority-now)"></span>Now</span>';
+        html += '  <span class="priority-legend-item"><span class="priority-legend-swatch" style="background:var(--priority-later)"></span>Later</span>';
+        html += '  <span class="priority-legend-item"><span class="priority-legend-swatch" style="background:var(--priority-never)"></span>Never</span>';
+        html += '</div>';
+      }
+
+      html += '  </div>';
+
+      if (phase.decision) {
+        html += '<div class="decision-block">';
+        html += '  <div class="decision-label">Decision</div>';
+        html += '  <div class="decision-title">' + esc(phase.decision.title) + '</div>';
+        html += '  <ul class="decision-rationale">';
+        for (var r = 0; r < phase.decision.rationale.length; r++) {
+          html += '<li>' + esc(phase.decision.rationale[r]) + '</li>';
+        }
+        html += '  </ul>';
+        html += '</div>';
+      }
+
+      html += '</section>';
+      return html;
+    }
+
+    /* ── Main Content Rendering ── */
+
+    function renderContent() {
+      var html = '';
+
+      html += '<div class="strategy-header">';
+      html += '  <h1 class="strategy-name">' + esc(JOURNEY_DATA.name) + '</h1>';
+      html += '  <div class="strategy-meta">' + esc(JOURNEY_DATA.date);
+      if (JOURNEY_DATA.context) {
+        html += ' &middot; ' + esc(JOURNEY_DATA.context);
+      }
+      html += '</div>';
+      html += '</div>';
+
+      html += renderTenetsBar();
+
+      for (var i = 0; i < JOURNEY_DATA.phases.length; i++) {
+        html += renderPhase(JOURNEY_DATA.phases[i]);
+      }
+
+      return html;
+    }
+
+    /* ── SVG Bezier Connectors ── */
+
+    function drawConnectors() {
+      var sections = document.querySelectorAll('.phase-section');
+      for (var s = 0; s < sections.length; s++) {
+        var section = sections[s];
+        if (section.dataset.status === 'upcoming') continue;
+
+        var treeArea = section.querySelector('.tree-area');
+        var svg = section.querySelector('.connectors');
+        var rootNode = section.querySelector('.root-node');
+        var cards = section.querySelectorAll('.option-card');
+
+        if (!treeArea || !svg || !rootNode || !cards.length) {
+          if (svg) svg.innerHTML = '';
+          continue;
+        }
+
+        var treeRect = treeArea.getBoundingClientRect();
+        var rootRect = rootNode.getBoundingClientRect();
+
+        var sx = rootRect.left + rootRect.width / 2 - treeRect.left;
+        var sy = rootRect.bottom - treeRect.top;
+
+        svg.setAttribute('viewBox', '0 0 ' + treeRect.width + ' ' + treeRect.height);
+
+        var paths = '';
+        for (var c = 0; c < cards.length; c++) {
+          var cardRect = cards[c].getBoundingClientRect();
+          var tx = cardRect.left + cardRect.width / 2 - treeRect.left;
+          var ty = cardRect.top - treeRect.top;
+          var cp = (ty - sy) * 0.5;
+          paths += '<path d="M ' + sx + ' ' + sy + ' C ' + sx + ' ' + (sy + cp) + ', ' + tx + ' ' + (ty - cp) + ', ' + tx + ' ' + ty + '" />';
+        }
+
+        svg.innerHTML = paths;
+      }
+    }
+
+    /* ── Auto Scroll ── */
+
+    function autoScroll() {
+      var current = document.querySelector('.phase-section[data-status="current"]');
+      if (current) {
+        setTimeout(function() {
+          current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+
+    /* ── Main Render ── */
+
+    function render() {
+      document.getElementById('sidebar').innerHTML = renderSidebar();
+      document.getElementById('content').innerHTML = renderContent();
+
+      requestAnimationFrame(function() {
+        drawConnectors();
+        autoScroll();
+      });
+
+      // Sidebar click navigation
+      var steps = document.querySelectorAll('.step');
+      for (var i = 0; i < steps.length; i++) {
+        (function(step) {
+          step.addEventListener('click', function() {
+            var phaseId = step.dataset.phaseId;
+            var target = document.querySelector('[data-phase="' + phaseId + '"]');
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        })(steps[i]);
+      }
+    }
+
+    render();
+
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(drawConnectors, 80);
+    });
+  </script>
+
+</body>
+</html>

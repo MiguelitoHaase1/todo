@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strategy Presentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #FAF9F6;
+      --text: #1A1A1A;
+      --text-secondary: #5a5a5e;
+      --text-muted: #9a9a9e;
+      --accent: #D97757;
+      --accent-light: rgba(217, 119, 87, 0.12);
+      --accent-dark: #c4603f;
+      --border: #d8d5c8;
+      --card-bg: rgba(255, 255, 255, 0.6);
+      --font-serif: 'Source Serif 4', Georgia, serif;
+      --font-sans: 'Inter', -apple-system, sans-serif;
+      --priority-now: #2d8a4e;
+      --priority-now-bg: rgba(45, 138, 78, 0.08);
+      --priority-now-border: rgba(45, 138, 78, 0.35);
+      --priority-later: #b5850a;
+      --priority-later-bg: rgba(181, 133, 10, 0.08);
+      --priority-later-border: rgba(181, 133, 10, 0.35);
+      --priority-never: #c53030;
+      --priority-never-bg: rgba(197, 48, 48, 0.08);
+      --priority-never-border: rgba(197, 48, 48, 0.35);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* -- Slides -- */
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 60px 80px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 180ms ease-out, visibility 180ms ease-out;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .slide-inner {
+      max-width: 960px;
+      width: 100%;
+    }
+
+    /* -- Step Slide -- */
+    .step-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .step-label {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .step-question {
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      max-width: 600px;
+    }
+
+    .step-body {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+    }
+
+    .step-main {
+      flex: 3;
+      min-width: 0;
+    }
+
+    .step-aside {
+      flex: 2;
+      min-width: 0;
+    }
+
+    /* -- Selected Choice Cards -- */
+    .step-selected-card {
+      border-left: 3px solid var(--accent);
+      background: rgba(217, 119, 87, 0.04);
+      border-radius: 0 12px 12px 0;
+      padding: 18px 22px;
+      margin-bottom: 12px;
+    }
+
+    .step-selected-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-selected-card h3 {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .step-selected-card p {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    /* -- Metrics Row -- */
+    .step-metrics {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .step-metric {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      flex: 1;
+      text-align: center;
+    }
+
+    .step-metric-value {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .step-metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* -- Alternatives Sidebar -- */
+    .step-aside-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+
+    .step-alts-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .step-alt {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .step-alt:last-child {
+      border-bottom: none;
+    }
+
+    .step-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    /* -- Deepdive Button -- */
+    .deepdive-btn {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-light);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 150ms, border-color 150ms;
+      flex-shrink: 0;
+    }
+
+    .deepdive-btn:hover {
+      background: rgba(217, 119, 87, 0.2);
+      border-color: var(--accent);
+    }
+
+    /* -- Modal -- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 26, 0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 200ms ease, visibility 200ms ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 620px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 36px;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      transform: translateY(12px);
+      transition: transform 200ms ease;
+    }
+
+    .modal-overlay.open .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      font-size: 22px;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 150ms, color 150ms;
+    }
+
+    .modal-close:hover {
+      background: var(--accent-light);
+      color: var(--text);
+    }
+
+    .modal-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 28px;
+    }
+
+    .modal-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .modal-section-label.selected-label {
+      color: var(--accent);
+    }
+
+    .modal-section-label.deselected-label {
+      color: var(--text-muted);
+      margin-top: 28px;
+    }
+
+    .modal-selected-card {
+      border-left: 3px solid var(--accent);
+      background: rgba(217, 119, 87, 0.06);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+    }
+
+    .modal-selected-card h4 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .modal-selected-card p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .modal-deselected-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .modal-deselected-item:last-child {
+      border-bottom: none;
+    }
+
+    .modal-deselected-item h4 {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-deselected-item h4 .not-selected-badge {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .modal-deselected-item p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    /* -- Modal Tree -- */
+    .modal-tree-area {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .modal-root-node {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 18px;
+      max-width: 300px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .modal-root-question {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .modal-connectors {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .modal-connectors path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      opacity: 0.3;
+    }
+
+    .modal-options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 56px;
+    }
+
+    .modal-option-card {
+      position: relative;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      transition: opacity 150ms;
+    }
+
+    .modal-option-card.is-selected {
+      border-color: var(--accent);
+      border-width: 2px;
+      background: rgba(217, 119, 87, 0.06);
+    }
+
+    .modal-option-card.is-muted {
+      opacity: 0.45;
+    }
+
+    /* -- Priority borders for User Experience modal -- */
+    .modal-option-card.priority-now {
+      border-color: var(--priority-now-border);
+      background: var(--priority-now-bg);
+    }
+
+    .modal-option-card.priority-later {
+      border-color: var(--priority-later-border);
+      background: var(--priority-later-bg);
+    }
+
+    .modal-option-card.priority-never {
+      border-color: var(--priority-never-border);
+      background: var(--priority-never-bg);
+    }
+
+    .modal-option-card.priority-now .modal-option-priority {
+      color: var(--priority-now);
+    }
+
+    .modal-option-card.priority-later .modal-option-priority {
+      color: var(--priority-later);
+    }
+
+    .modal-option-card.priority-never .modal-option-priority {
+      color: var(--priority-never);
+    }
+
+    .modal-option-title {
+      font-family: var(--font-serif);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .modal-option-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    .modal-option-priority {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 6px;
+    }
+
+    .modal-check-icon {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 16px;
+      height: 16px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    /* -- Navigation -- */
+    .nav {
+      position: fixed;
+      bottom: 32px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 150ms, background 150ms;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .nav-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--text);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-counter {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .nav-btn:disabled:hover {
+      border-color: var(--border);
+      background: var(--card-bg);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- One slide per strategy section -->
+  <div class="slide step-slide active">
+    <div class="slide-inner" id="slide-0"></div>
+  </div>
+
+  <div class="slide step-slide">
+    <div class="slide-inner" id="slide-1"></div>
+  </div>
+
+  <div class="slide step-slide">
+    <div class="slide-inner" id="slide-2"></div>
+  </div>
+
+  <div class="slide step-slide">
+    <div class="slide-inner" id="slide-3"></div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-card" id="modal-card"></div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button class="nav-btn" id="prev" aria-label="Previous slide">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-counter" id="counter">1 / 4</span>
+    <button class="nav-btn" id="next" aria-label="Next slide">
+      <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+    </button>
+  </div>
+
+  <script>
+    // === STRATEGY_DATA_START ===
+    const STRATEGY_DATA = {
+      strategyName: "Todolist",
+      date: "2026-03-25",
+      author: "Michael Haase",
+      slides: [
+        {
+          label: "Problem & Users",
+          question: "Todoist is a dumb pipe in an intelligent workflow. The evening is where it breaks.",
+          selected: {
+            title: "The broken middle",
+            rationale: "Tasks enter fast all day. Then they vanish into a flat list. The evening forces two separate apps — Morning Brew for reflection, Todoist for task updates. One conversation split across two tools.",
+            deepRationale: "Six pain points converge on one root cause: Todoist can't participate in the planning conversation. It doesn't see reflections, doesn't understand relationships, doesn't learn from patterns. Morning Brew already captures completions and context via Supabase — but that data flows nowhere. The result: a stale backlog, thin context on every task, invisible relationships, and a nightly chore that feels deflating instead of energizing."
+          },
+          deselected: [
+            { title: "Feature gap with Todoist", description: "The problem isn't missing features — it's architectural. Todoist is a silo." },
+            { title: "Mobile app quality", description: "Todoist's mobile experience is fine. The issue is what the data can do, not how it looks." },
+            { title: "Multi-user coordination", description: "Single-user system — collaboration isn't the problem space." }
+          ],
+          metrics: {
+            painPoints: "6",
+            dailyMoments: "3",
+            appsInFlow: "2\u21921"
+          }
+        },
+        {
+          label: "User Experience & JTBD",
+          question: "Five jobs across three daily moments. The evening session is the keystone.",
+          selected: [
+            { title: "Capture a task instantly", rationale: "One-liners in seconds, from anywhere.", deepRationale: "Tasks arrive in meetings, cars, meditation, falling asleep. The system must accept a title and optional priority in under 5 seconds. The emotional job: relief — 'it's captured, I can let go.' This is the entry point for everything else.", priority: "Now" },
+            { title: "See the full landscape", rationale: "All tasks, relationships, priorities, and staleness in one view.", deepRationale: "When planning, a flat list sorted by due date hides more than it reveals. The system must show priority tiers, task age, relationship clusters, and groupings. The emotional job: confidence — 'I see the whole picture, nothing is hiding.'", priority: "Now" },
+            { title: "Reflect and reshape in one flow", rationale: "Evening reflections flow directly into reshaping tomorrow.", deepRationale: "Today, Morning Brew reflections (gratitude, learnings, priorities) happen in one place, and task updates happen in Todoist. This kills the flow. Reflections should naturally reshape tomorrow's tasks — completions sync, deferrals happen in place, the plan takes shape. The emotional job: gratification — 'closing my day builds tomorrow's plan.'", priority: "Now" },
+            { title: "AI-powered priority suggestions", rationale: "The system suggests what matters based on full context.", deepRationale: "Given reflections, outcomes, relationships, and historical patterns, the AI ranks tasks by relevance to current priorities. It doesn't decide — it shows the landscape with reasoning. The emotional job: trust — 'the system sees patterns I miss.' This is the highest-risk assumption (medium confidence, high impact).", priority: "Now" },
+            { title: "See task relationships during planning", rationale: "Connected tasks surface during evening reshaping.", deepRationale: "Originally scoped as 'Later' — promoted to 'Now' because relationships are how you think during planning, not a separate feature. When reflecting on a task, seeing its siblings, dependencies, and related threads changes how you reshape tomorrow. The emotional job: clarity — 'I understand the web of my work.'", priority: "Now" }
+          ],
+          deselected: [
+            { title: "Track task history", description: "See a task's full lifecycle — deferrals, reflections, evolution. Foundation for knowledge graph.", priority: "Later" },
+            { title: "Mobile browse and reprioritize", description: "Quick on-the-go adjustments without the full planning ritual.", priority: "Later" },
+            { title: "Auto-detect stale tasks", description: "Violates 'landscape over directives.' System shows staleness; user decides.", priority: "Never" }
+          ]
+        },
+        {
+          label: "Tenets & Principles",
+          question: "Three Even Over principles that resolve every design conflict.",
+          selected: [
+            { title: "Landscape over directives", rationale: "Show me everything and let me decide.", deepRationale: "The system is an advisor, not a boss. When AI surfaces priorities, it explains reasoning but never hides options. Every task, every relationship, every staleness signal is visible. The user always has the full picture and the final word." },
+            { title: "Frictionless capture over rich input", rationale: "One-liners in, enrich during the evening ritual.", deepRationale: "Tasks arrive at random moments. Forcing context at capture time means fewer tasks get captured. Instead, thin tasks flow in fast and get enriched later — during the evening planning session when there's time and mental space to add context, relationships, and priority." },
+            { title: "Deep integration over standalone value", rationale: "The /morning + Morning Brew workflow is the primary surface.", deepRationale: "This system exists because the planning workflow needs a smarter backend. Building a standalone task app that happens to integrate would invert the priority. Instead: optimize deeply for the existing ritual, but keep pieces composable so each can evolve independently." }
+          ],
+          deselected: [
+            { title: "AI decides for you", description: "Rejected in favor of landscape — the system advises, never commands." },
+            { title: "Rich capture upfront", description: "Rejected in favor of frictionless entry — context comes later during planning." },
+            { title: "Standalone-first design", description: "Rejected — the value is in the integration with the existing daily ritual." }
+          ]
+        },
+        {
+          label: "Scope & Direction",
+          question: "Smart backend + lightweight mobile web. Evolves toward knowledge graph.",
+          selected: {
+            title: "Smart backend + lightweight mobile web",
+            rationale: "Intelligent task graph as a data layer with API. Simple mobile web view for browsing. Morning Brew stays the daily page.",
+            deepRationale: "The backend is the product — task graph with relationships, context history, reflection links, and AI reasoning. A lightweight mobile web view fills the on-the-go gap that Todoist currently serves. Morning Brew remains the daily operating page; the /morning skill reads from this system instead of Todoist. The data model accommodates future evolution toward a knowledge graph as context accumulates. Running alongside Todoist initially — prove value incrementally, discover edge cases, let Todoist fall away naturally."
+          },
+          deselected: [
+            { title: "Backend only, no new UI", description: "Missing the on-the-go browse and reprioritize need." },
+            { title: "Full Todoist replacement app", description: "Over-scoped for V1. Morning Brew already handles the daily view." },
+            { title: "AI-first conversational", description: "Interesting but violates 'landscape over directives' — needs visual overview." },
+            { title: "Knowledge graph first", description: "The destination, not the starting point. Need data mass before a graph is useful." }
+          ]
+        }
+      ]
+    };
+    // === STRATEGY_DATA_END ===
+
+    /* -- Helpers -- */
+    var _escEl = document.createElement('div');
+    function esc(str) {
+      if (str == null) return '';
+      _escEl.textContent = String(str);
+      return _escEl.innerHTML;
+    }
+
+    function asArray(val) {
+      return Array.isArray(val) ? val : (val ? [val] : []);
+    }
+
+    function priorityCls(slideIndex, item) {
+      return (slideIndex === 1 && item.priority) ? ' priority-' + item.priority.toLowerCase() : '';
+    }
+
+    /* -- Total slide count -- */
+    const TOTAL_SLIDES = STRATEGY_DATA.slides.length || 4;
+
+    /* -- Render Step Slide -- */
+
+    function renderStepSlide(slideIndex) {
+      const slide = STRATEGY_DATA.slides[slideIndex];
+      if (!slide) return '<p style="color: var(--text-muted);">Data not yet available.</p>';
+
+      const selectedItems = asArray(slide.selected);
+
+      let selectedHtml = '';
+      selectedItems.forEach(function(sel) {
+        selectedHtml += '<div class="step-selected-card">' +
+          '<h3>' + esc(sel.title) + '</h3>' +
+          '<p>' + esc(sel.rationale) + '</p>' +
+          '</div>';
+      });
+
+      /* Metrics row for Problem & Users slide (index 0) */
+      let metricsHtml = '';
+      if (slideIndex === 0 && slide.metrics) {
+        const m = slide.metrics;
+        const entries = Object.entries(m);
+        if (entries.length > 0) {
+          metricsHtml = '<div class="step-metrics">';
+          entries.forEach(function(pair) {
+            var key = pair[0];
+            var val = pair[1];
+            /* Convert camelCase to readable label */
+            var label = key.replace(/([A-Z])/g, ' $1').replace(/^./, function(s) { return s.toUpperCase(); });
+            metricsHtml += '<div class="step-metric">' +
+              '<div class="step-metric-value">' + esc(val) + '</div>' +
+              '<div class="step-metric-label">' + esc(label) + '</div>' +
+              '</div>';
+          });
+          metricsHtml += '</div>';
+        }
+      }
+
+      let altsHtml = '';
+      if (slide.deselected && slide.deselected.length > 0) {
+        altsHtml += '<div class="step-alts-label">Alternatives considered</div>';
+        slide.deselected.forEach(function(alt) {
+          altsHtml += '<div class="step-alt">' + esc(alt.title) + '</div>';
+        });
+      }
+
+      return '<div class="step-eyebrow">' + esc(STRATEGY_DATA.strategyName) + ' &middot; Slide ' + (slideIndex + 1) + ' of ' + TOTAL_SLIDES + '</div>' +
+        '<h2 class="step-label">' + esc(slide.label) + '</h2>' +
+        '<p class="step-question">' + esc(slide.question) + '</p>' +
+        '<div class="step-body">' +
+          '<div class="step-main">' +
+            selectedHtml +
+            metricsHtml +
+          '</div>' +
+          '<div class="step-aside">' +
+            '<div class="step-aside-card">' +
+              altsHtml +
+              '<div class="step-footer">' +
+                '<button class="deepdive-btn" data-slide="' + slideIndex + '">Deepdive</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    /* -- Modal -- */
+
+    function openModal(slideIndex) {
+      var slide = STRATEGY_DATA.slides[slideIndex];
+      if (!slide) return;
+
+      var overlay = document.getElementById('modal-overlay');
+      var card = document.getElementById('modal-card');
+
+      var question = slide.question || slide.label;
+      var selectedItems = asArray(slide.selected);
+      var isUXSlide = (slideIndex === 1);
+
+      var optionsHtml = '';
+      selectedItems.forEach(function(sel) {
+        var pc = priorityCls(slideIndex, sel);
+        optionsHtml += '<div class="modal-option-card is-selected' + pc + '">' +
+          '<div class="modal-option-title">' + esc(sel.title) + '</div>' +
+          (isUXSlide && sel.priority ? '<div class="modal-option-priority">' + esc(sel.priority) + '</div>' : '') +
+          '<svg class="modal-check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' +
+          '</div>';
+      });
+
+      if (slide.deselected) {
+        slide.deselected.forEach(function(opt) {
+          var pc = priorityCls(slideIndex, opt);
+          optionsHtml += '<div class="modal-option-card' + (pc ? pc : ' is-muted') + '">' +
+            '<div class="modal-option-title">' + esc(opt.title) + '</div>' +
+            (opt.description ? '<div class="modal-option-desc">' + esc(opt.description) + '</div>' : '') +
+            (isUXSlide && opt.priority ? '<div class="modal-option-priority">' + esc(opt.priority) + '</div>' : '') +
+            '</div>';
+        });
+      }
+
+      var whyLabel = selectedItems.length > 1 ? 'WHY THESE CHOICES' : 'WHY THIS CHOICE';
+      var whyHtml = '<div class="modal-section-label selected-label">' + whyLabel + '</div>';
+      selectedItems.forEach(function(sel) {
+        whyHtml += '<div class="modal-selected-card"' + (selectedItems.length > 1 ? ' style="margin-bottom: 12px;"' : '') + '>' +
+          '<h4>' + esc(sel.title) + '</h4>' +
+          '<p>' + esc(sel.deepRationale || sel.rationale) + '</p>' +
+          '</div>';
+      });
+
+      var html = '<button class="modal-close" id="modal-close-btn">&times;</button>' +
+        '<div class="modal-eyebrow">PRODUCT IS A CHOICE</div>' +
+        '<h3 class="modal-title">' + esc(slide.label) + '</h3>' +
+        '<div class="modal-tree-area">' +
+          '<div class="modal-root-node">' +
+            '<div class="modal-root-question">' + esc(question) + '</div>' +
+          '</div>' +
+          '<svg class="modal-connectors"></svg>' +
+          '<div class="modal-options-grid">' +
+            optionsHtml +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-divider"></div>' +
+        whyHtml;
+
+      card.innerHTML = html;
+      overlay.classList.add('open');
+
+      document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+      requestAnimationFrame(function() { drawModalConnectors(); });
+    }
+
+    function drawModalConnectors() {
+      var treeArea = document.querySelector('.modal-tree-area');
+      var svg = treeArea ? treeArea.querySelector('.modal-connectors') : null;
+      var root = treeArea ? treeArea.querySelector('.modal-root-node') : null;
+      var cards = treeArea ? treeArea.querySelectorAll('.modal-option-card') : null;
+
+      if (!treeArea || !svg || !root || !cards || !cards.length) return;
+
+      var treeRect = treeArea.getBoundingClientRect();
+      var rootRect = root.getBoundingClientRect();
+
+      var sx = rootRect.left + rootRect.width / 2 - treeRect.left;
+      var sy = rootRect.bottom - treeRect.top;
+
+      svg.setAttribute('viewBox', '0 0 ' + treeRect.width + ' ' + treeRect.height);
+
+      var paths = '';
+      cards.forEach(function(c) {
+        var r = c.getBoundingClientRect();
+        var tx = r.left + r.width / 2 - treeRect.left;
+        var ty = r.top - treeRect.top;
+        var cp = (ty - sy) * 0.5;
+        paths += '<path d="M ' + sx + ' ' + sy + ' C ' + sx + ' ' + (sy + cp) + ', ' + tx + ' ' + (ty - cp) + ', ' + tx + ' ' + ty + '" />';
+      });
+
+      svg.innerHTML = paths;
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+
+    /* -- Navigation -- */
+
+    var slides = document.querySelectorAll('.slide');
+    var counter = document.getElementById('counter');
+    var prevBtn = document.getElementById('prev');
+    var nextBtn = document.getElementById('next');
+    var current = 0;
+
+    function go(i) {
+      if (i < 0 || i >= slides.length) return;
+      slides[current].classList.remove('active');
+      current = i;
+      slides[current].classList.add('active');
+      counter.textContent = (current + 1) + ' / ' + slides.length;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === slides.length - 1;
+    }
+
+    prevBtn.addEventListener('click', function() { go(current - 1); });
+    nextBtn.addEventListener('click', function() { go(current + 1); });
+
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById('modal-overlay').classList.contains('open')) {
+        if (e.key === 'Escape') closeModal();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(current + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(current - 1); }
+    });
+
+    /* -- Init -- */
+
+    for (var i = 0; i < TOTAL_SLIDES; i++) {
+      var el = document.getElementById('slide-' + i);
+      if (el) el.innerHTML = renderStepSlide(i);
+    }
+
+    document.querySelectorAll('.deepdive-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { openModal(parseInt(btn.dataset.slide)); });
+    });
+
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    go(0);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todolist — Archetype Exploration</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #FAF9F6;
+      --text: #1A1A1A;
+      --text-sec: #6B6B6B;
+      --text-muted: #9B9B9B;
+      --accent: #D97757;
+      --accent-light: rgba(217, 119, 87, 0.10);
+      --accent-dark: #c4603f;
+      --border: #E5E4E0;
+      --card-bg: #FFFFFF;
+      --strong: #2d8a4e;
+      --partial: #b5850a;
+      --weak: #c53030;
+      --sage: #B8C4B8;
+      --lavender: #C5C1D6;
+      --serif: 'Source Serif 4', Georgia, serif;
+      --sans: 'Inter', -apple-system, sans-serif;
+    }
+    html, body { font-family: var(--sans); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+    /* --- Page 1: Title + Overview --- */
+    .page { width: 1122px; min-height: 793px; padding: 48px 56px; page-break-after: always; position: relative; }
+    .page:last-child { page-break-after: auto; }
+
+    .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .title { font-family: var(--serif); font-size: 32px; font-weight: 700; line-height: 1.15; }
+    .date { font-size: 12px; color: var(--text-muted); }
+    .subtitle { font-size: 15px; color: var(--text-sec); margin-bottom: 32px; max-width: 700px; line-height: 1.5; }
+
+    .vision-bar {
+      background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      border-radius: 10px; padding: 14px 20px; margin-bottom: 32px; display: flex; gap: 16px; align-items: center;
+    }
+    .vision-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); flex-shrink: 0; }
+    .vision-text { font-family: var(--serif); font-size: 15px; font-weight: 600; color: var(--text); }
+    .principle-pills { display: flex; gap: 8px; margin-bottom: 32px; }
+    .pill { background: var(--accent-light); color: var(--accent-dark); font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
+
+    /* --- Cards Grid --- */
+    .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+      display: flex; flex-direction: column; gap: 8px; position: relative;
+    }
+    .card-num {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--accent-light); color: var(--accent-dark);
+      font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .card-head { display: flex; align-items: center; gap: 8px; }
+    .card-title { font-family: var(--serif); font-size: 14px; font-weight: 700; line-height: 1.25; }
+    .card-desc { font-size: 11px; color: var(--text-sec); line-height: 1.45; }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+    .tag { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+    .tag-strong { background: rgba(45,138,78,0.10); color: var(--strong); }
+    .tag-partial { background: rgba(181,133,10,0.10); color: var(--partial); }
+    .tag-weak { background: rgba(197,48,48,0.10); color: var(--weak); }
+    .card-tradeoff { font-size: 10px; color: var(--text-muted); font-style: italic; line-height: 1.4; border-top: 1px solid var(--border); padding-top: 6px; }
+
+    /* --- Page 2: Coverage Grid --- */
+    .section-title { font-family: var(--serif); font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .section-sub { font-size: 13px; color: var(--text-sec); margin-bottom: 24px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    th:first-child { width: 220px; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: center; }
+    td:first-child { text-align: left; font-weight: 500; color: var(--text); }
+    .fit-strong { color: var(--strong); font-weight: 600; }
+    .fit-partial { color: var(--partial); font-weight: 600; }
+    .fit-weak { color: var(--weak); font-weight: 600; }
+
+    .legend { display: flex; gap: 20px; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-dot.strong { background: var(--strong); }
+    .legend-dot.partial { background: var(--partial); }
+    .legend-dot.weak { background: var(--weak); }
+
+    /* --- Page 2: Gaps & Insights --- */
+    .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 32px; }
+    .insight-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .insight-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+    .insight-title { font-family: var(--serif); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .insight-text { font-size: 12px; color: var(--text-sec); line-height: 1.5; }
+
+    .footer { position: absolute; bottom: 24px; left: 56px; right: 56px; display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- PAGE 1: Archetype Overview -->
+<div class="page">
+  <div class="header">
+    <div class="title">Todolist — Archetype Exploration</div>
+    <div class="date">March 2026</div>
+  </div>
+  <div class="subtitle">Eight solution directions for an intelligent task system that replaces Todoist. Informed by landscape research into Taskwarrior, MCP task servers, and AI scheduling tools.</div>
+
+  <div class="vision-bar">
+    <span class="vision-label">Vision</span>
+    <span class="vision-text">A task system that thinks alongside me — surfacing what matters most each day.</span>
+  </div>
+
+  <div class="principle-pills">
+    <span class="pill">Landscape over directives</span>
+    <span class="pill">Frictionless capture, rich context later</span>
+    <span class="pill">Deep integration over standalone</span>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-head"><span class="card-num">1</span><span class="card-title">Custom CLI</span></div>
+      <div class="card-desc">Build from scratch in TS/Python with SQLite. Borrow Taskwarrior concepts — dependencies, hooks, JSON export — but purpose-built for your workflow.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Capture</span>
+        <span class="tag tag-strong">Relationships</span>
+        <span class="tag tag-partial">Landscape</span>
+      </div>
+      <div class="card-tradeoff">More upfront work, but full control. No legacy baggage.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">2</span><span class="card-title">Taskwarrior Fork</span></div>
+      <div class="card-desc">Use actual Taskwarrior as task engine. Wrap with MCP server and AI layer for /morning skill. Keep its battle-tested CLI.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Capture</span>
+        <span class="tag tag-strong">Relationships</span>
+        <span class="tag tag-partial">AI Priorities</span>
+      </div>
+      <div class="card-tradeoff">Inherits C++ complexity. Hard to customize data model.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">3</span><span class="card-title">MCP Server Only</span></div>
+      <div class="card-desc">The system IS an MCP server. Claude reads, writes, and reasons about tasks directly. No standalone UI — all interaction through AI sessions.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">AI Priorities</span>
+        <span class="tag tag-strong">Reflect+Reshape</span>
+        <span class="tag tag-weak">Capture</span>
+      </div>
+      <div class="card-tradeoff">Great integration, but can't capture without an AI session.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">4</span><span class="card-title">CLI + MCP Hybrid</span></div>
+      <div class="card-desc">CLI for human interaction (capture, browse). MCP server for AI interaction (/morning reads/writes). Same SQLite, two interfaces.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Capture</span>
+        <span class="tag tag-strong">AI Priorities</span>
+        <span class="tag tag-strong">Relationships</span>
+      </div>
+      <div class="card-tradeoff">Two interfaces to maintain. But each is focused.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">5</span><span class="card-title">Morning Brew Ext</span></div>
+      <div class="card-desc">Extend Morning Brew directly. Add task management into the daily HTML. Tasks in Supabase. Reflection becomes reshaping interface.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Reflect+Reshape</span>
+        <span class="tag tag-strong">Landscape</span>
+        <span class="tag tag-weak">Capture</span>
+      </div>
+      <div class="card-tradeoff">Deeply integrated but tightly coupled. No CLI capture.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">6</span><span class="card-title">Claude Code Skill</span></div>
+      <div class="card-desc">A /tasks skill living inside Claude Code. Tasks in markdown or SQLite. Capture via /tasks add. /morning reads from the same store.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Capture</span>
+        <span class="tag tag-strong">AI Priorities</span>
+        <span class="tag tag-partial">Reflect+Reshape</span>
+      </div>
+      <div class="card-tradeoff">No mobile web. No browsing outside Claude Code.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">7</span><span class="card-title">Web App + API</span></div>
+      <div class="card-desc">Supabase-backed web app reusing Morning Brew's instance. REST API for /morning. Mobile-friendly UI for browsing and reshaping.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">Landscape</span>
+        <span class="tag tag-strong">Reflect+Reshape</span>
+        <span class="tag tag-strong">Relationships</span>
+      </div>
+      <div class="card-tradeoff">Most infrastructure. But gives you a real app on your phone.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-num">8</span><span class="card-title">CLI + MCP + Web</span></div>
+      <div class="card-desc">CLI for capture, MCP for AI integration, thin web view on Vercel for mobile. Three surfaces, one brain. Composable by design.</div>
+      <div class="card-tags">
+        <span class="tag tag-strong">All 5 JTBDs</span>
+      </div>
+      <div class="card-tradeoff">Most pieces. But each is small, focused, composable.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Product Strategy: Todolist</span>
+    <span>Page 1 of 2</span>
+  </div>
+</div>
+
+<!-- PAGE 2: Coverage Grid + Insights -->
+<div class="page">
+  <div class="section-title">JTBD Coverage Matrix</div>
+  <div class="section-sub">How well each direction serves the five "Now" jobs from the strategy.</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Direction</th>
+        <th>Capture Instantly</th>
+        <th>Full Landscape</th>
+        <th>Reflect + Reshape</th>
+        <th>AI Priorities</th>
+        <th>Relationships</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1. Custom CLI</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-weak">Weak</td>
+        <td class="fit-weak">Weak</td>
+        <td class="fit-strong">Strong</td>
+      </tr>
+      <tr>
+        <td>2. Taskwarrior Fork</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-weak">Weak</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+      </tr>
+      <tr>
+        <td>3. MCP Server Only</td>
+        <td class="fit-weak">Weak</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+      </tr>
+      <tr>
+        <td>4. CLI + MCP Hybrid</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-strong">Strong</td>
+      </tr>
+      <tr>
+        <td>5. Morning Brew Extension</td>
+        <td class="fit-weak">Weak</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-partial">Partial</td>
+      </tr>
+      <tr>
+        <td>6. Claude Code Skill</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+      </tr>
+      <tr>
+        <td>7. Web App + API</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-strong">Strong</td>
+        <td class="fit-partial">Partial</td>
+        <td class="fit-strong">Strong</td>
+      </tr>
+      <tr style="background: var(--accent-light);">
+        <td><strong>8. CLI + MCP + Web</strong></td>
+        <td class="fit-strong"><strong>Strong</strong></td>
+        <td class="fit-strong"><strong>Strong</strong></td>
+        <td class="fit-strong"><strong>Strong</strong></td>
+        <td class="fit-strong"><strong>Strong</strong></td>
+        <td class="fit-strong"><strong>Strong</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot strong"></span>Strong — core interaction directly serves this job</span>
+    <span class="legend-item"><span class="legend-dot partial"></span>Partial — requires adaptation</span>
+    <span class="legend-item"><span class="legend-dot weak"></span>Weak — significant stretch</span>
+  </div>
+
+  <div class="insights-grid">
+    <div class="insight-card">
+      <div class="insight-label">Key Insight</div>
+      <div class="insight-title">Only two directions cover all 5 jobs</div>
+      <div class="insight-text">Direction 4 (CLI + MCP) and Direction 8 (CLI + MCP + Web) are the only architectures that naturally serve all five Now JTBDs. Every other direction has at least one Weak gap. The difference: #8 adds a mobile web surface for landscape browsing.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Landscape Gap</div>
+      <div class="insight-title">No existing tool bridges capture and reflection</div>
+      <div class="insight-text">Taskwarrior has the right data model (CLI + SQLite + dependencies) but no AI layer. MCP task servers exist but are agent-facing, not human-facing. The personal + self-owned + CLI + AI space is wide open.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Fork vs. Build</div>
+      <div class="insight-title">Taskwarrior's concepts, not its code</div>
+      <div class="insight-text">Taskwarrior's architecture pattern (CLI, JSON data, dependencies, hooks) is gold. But its C++ codebase makes customization hard — especially adding reflection links, AI reasoning, and MCP integration. Build from scratch, borrowing concepts.</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Composability</div>
+      <div class="insight-title">Three small surfaces beat one big app</div>
+      <div class="insight-text">The strategy principle "deep integration, composable pieces" points toward direction 8. A CLI, an MCP server, and a thin web view — each independently improvable, all sharing one SQLite/Supabase brain.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Product Strategy: Todolist</span>
+    <span>Page 2 of 2</span>
+  </div>
+</div>
+
+</body>
+</html>

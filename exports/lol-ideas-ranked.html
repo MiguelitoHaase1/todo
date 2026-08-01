@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOL — Lovable on Lovable · build order, 10 scheduled 27–31 July</title>
+<style>
+  /* ---- tokens: house identity (visual-identity.md) + dataviz chrome ---- */
+  :root{
+    color-scheme: light;
+    --bg:#FAF9F6; --bg-2:#F0EFEB; --card:#FFFFFF;
+    --ink:#1A1A1A; --ink-2:#6B6B6B; --ink-3:#9B9B9B;
+    --line:#E5E4E0; --line-2:#D1D0CC;
+    --coral:#D97757; --coral-wash:rgba(217,119,87,.10);
+    --sage:#7E9A76;              /* signature pop — used once, masthead only */
+    /* categorical slots — validated all-pairs on #FAF9F6, light mode */
+    --s1:#D97757;  /* Runtime */
+    --s2:#2a78d6;  /* Reach   */
+    --s3:#4a3aa7;  /* Craft   */
+    --grid:#E5E4E0; --axis:#C3C2B7; --muted:#898781;
+    --serif:'Source Serif 4','Iowan Old Style','Palatino Linotype',Georgia,serif;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 28px 72px}
+
+  /* ---------------- masthead (signature layer lives here only) --------- */
+  .mast{position:relative;border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:32px}
+  .kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--coral);font-weight:600;margin:0 0 10px}
+  .mast h1{font-family:var(--serif);font-size:40px;line-height:1.15;font-weight:700;margin:0 0 10px;letter-spacing:-.01em}
+  .mast h1 em{font-style:normal;color:var(--sage)}
+  .dek{font-family:var(--serif);font-size:18px;line-height:1.55;color:var(--ink-2);max-width:62ch;margin:0}
+  .mh{position:absolute;top:2px;right:0;width:34px;height:34px;border:1.5px solid var(--line-2);border-radius:50%;
+      display:grid;place-items:center;font-family:var(--serif);font-size:12px;font-weight:700;color:var(--ink-3);letter-spacing:.02em}
+
+  /* ---------------- stat tiles ---------------- */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .tile .lab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:6px}
+  .tile .val{font-size:30px;font-weight:600;line-height:1.1;letter-spacing:-.02em}
+  .tile .sub{font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.45}
+  .tile.hero .val{color:var(--coral);font-size:20px;line-height:1.25;font-weight:600;letter-spacing:-.01em}
+
+  /* ---------------- filter row (one row, above everything it scopes) --- */
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;
+           padding:12px 14px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px}
+  .filters .fl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-right:2px}
+  .chip{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:5px 13px;border-radius:20px;
+        border:1px solid var(--line-2);background:var(--card);color:var(--ink);font:inherit;font-size:13px;cursor:pointer;
+        transition:background .15s ease,border-color .15s ease,opacity .15s ease}
+  .chip:hover{border-color:var(--coral)}
+  .chip:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
+  .chip .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .chip[aria-pressed="false"]{opacity:.45;background:transparent}
+  .chip[aria-pressed="false"] .dot{background:var(--ink-3)!important}
+  .spacer{flex:1}
+
+  /* ---------------- chart card ---------------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px 18px;margin-bottom:18px}
+  .card h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:0 0 4px}
+  .card .note{font-size:13px;color:var(--ink-2);margin:0 0 14px}
+  .chartbox{position:relative;width:100%}
+  svg.viz{display:block;width:100%;height:auto;overflow:visible}
+  .qlabel{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;fill:var(--ink-3);font-weight:600}
+  .atick{font-size:11.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+  .atitle{font-size:12px;fill:var(--ink-2);font-weight:600;letter-spacing:.02em}
+  /* no `fill` here — a CSS declaration would beat the per-bubble fill attribute */
+  .blab{font-size:11px;font-weight:600;pointer-events:none;font-variant-numeric:tabular-nums}
+  .bub{cursor:pointer;transition:opacity .15s ease}
+  .bub:focus-visible{outline:none}
+  .bub:focus-visible .ring{stroke:var(--ink);stroke-width:2.5}
+  .bub.dim{opacity:.10;pointer-events:none}
+
+  /* legend */
+  .legends{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-end;padding-top:16px;margin-top:14px;border-top:1px solid var(--line)}
+  .lg{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .lgi{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+  .lgi b{color:var(--ink);font-weight:600}
+  .lgi .sw{width:13px;height:13px;border-radius:50%;flex:none}
+  .lgt{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:8px}
+
+  /* tooltip */
+  .tip{position:absolute;pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease;
+       background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;max-width:310px;z-index:20;
+       box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .tip.on{opacity:1;transform:translateY(0)}
+  .tip .tt{font-family:var(--serif);font-size:15.5px;font-weight:600;line-height:1.35;margin-bottom:8px}
+  .tip .tm{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-bottom:9px;font-variant-numeric:tabular-nums}
+  .tip .tm b{color:var(--ink);font-weight:600}
+  .tip .tf{font-size:12.5px;line-height:1.5;color:var(--ink-2);border-top:1px solid var(--line);padding-top:8px}
+  .tip .tf span{color:var(--coral);font-weight:600}
+
+  /* ---------------- table ---------------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+           padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap;position:sticky;top:0;background:var(--card)}
+  thead th.num{text-align:right}
+  thead th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+  thead th button:hover{color:var(--coral)}
+  thead th button:focus-visible{outline:2px solid var(--coral);outline-offset:2px;border-radius:3px}
+  .arw{opacity:0;font-size:9px}
+  th[aria-sort] .arw{opacity:1;color:var(--coral)}
+  tbody td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tbody tr.dropped{opacity:.55}
+  tbody tr.hide{display:none}
+  .rk{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:600;
+      color:#fff;font-variant-numeric:tabular-nums}
+  .th-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+  .th-pill .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .idea{font-weight:600;color:var(--ink);line-height:1.4}
+  .drop-tag{display:inline-block;margin-left:7px;font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+            border:1px solid var(--line-2);border-radius:20px;padding:1px 7px;color:var(--ink-3);font-weight:600;vertical-align:1px}
+  .move{color:var(--ink-2);font-size:12.5px;line-height:1.5;max-width:44ch}
+  .score{font-weight:600}
+
+  /* ---------------- method ---------------- */
+  .method{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:24px;
+          font-size:13px;color:var(--ink-2);line-height:1.65}
+  .method h3{font-family:var(--serif);font-size:16px;color:var(--ink);margin:0 0 8px;font-weight:600}
+  .method code{font-family:'SF Mono',ui-monospace,Consolas,monospace;font-size:12px;background:var(--card);
+               border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .method ul{margin:8px 0 0;padding-left:18px}
+  .method li{margin-bottom:4px}
+
+  @media (max-width:860px){
+    .tiles{grid-template-columns:repeat(2,1fr)}
+    .mast h1{font-size:30px}
+    .wrap{padding:28px 16px 56px}
+    .tblscroll{overflow-x:auto}
+    table{min-width:820px}
+  }
+  @media print{ body{background:#fff} .filters{display:none} .card{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mh" title="Michael Haase">MH</div>
+    <p class="kicker">Lovable on Lovable · build order set 26 July 2026</p>
+    <h1>19 ideas, <em>ten</em> scheduled next week</h1>
+    <p class="dek">The order is <b>5 → 2 → 1 → 15 → 6+7 → 3 → 10 → 19</b>, with 14 running in parallel.
+      It is dependency-driven, not score-driven — which is why #15 scores last of the ten and is built fourth.
+      Scores still say what is worth doing; the order says what makes each one cheaper. IDs are frozen labels
+      and track neither.</p>
+  </header>
+
+  <section class="tiles">
+    <div class="tile"><div class="lab">Ideas captured</div><div class="val">20</div><div class="sub">10 scheduled · 10 parked</div></div>
+    <div class="tile"><div class="lab">Scheduled</div><div class="val">Mon–Fri</div><div class="sub">27–31 July · to-dos dated and prioritised in order</div></div>
+    <div class="tile"><div class="lab">Biggest order↔score gap</div><div class="val">#15</div><div class="sub">Scores last of the ten, built fourth — it gates #6 and #7</div></div>
+    <div class="tile hero"><div class="lab">First up, Monday</div><div class="val">Secret &amp; credential capture</div><div class="sub">Small, user-visible, few dependencies</div></div>
+  </section>
+
+  <div class="filters">
+    <span class="fl">Filter</span>
+    <button class="chip" data-theme-filter="Runtime" aria-pressed="true"><span class="dot" style="background:var(--s1)"></span>Runtime <span style="color:var(--ink-3)">5</span></button>
+    <button class="chip" data-theme-filter="Reach" aria-pressed="true"><span class="dot" style="background:var(--s2)"></span>Reach <span style="color:var(--ink-3)">7</span></button>
+    <button class="chip" data-theme-filter="Craft" aria-pressed="true"><span class="dot" style="background:var(--s3)"></span>Craft <span style="color:var(--ink-3)">7</span></button>
+    <span class="spacer"></span>
+    <button class="chip" id="priToggle" aria-pressed="false">Scheduled only <span style="color:var(--ink-3)">10</span></button>
+    <button class="chip" id="dropToggle" aria-pressed="true">Show dropped idea</button>
+  </div>
+
+  <section class="card">
+    <h2>Where each idea sits</h2>
+    <p class="note">Horizontal = ease of execution. Vertical = value for enterprises. Bubble area = wow effect for
+      Lovable management. Numbers are frozen IDs — they match the table below. Where two ideas score identically
+      on both axes they are nudged apart so neither hides the other; their true position is the midpoint between
+      them, and the exact numbers are in the table.</p>
+
+    <div class="chartbox">
+      <svg class="viz" viewBox="0 0 860 640" role="img" aria-labelledby="vizTitle vizDesc">
+        <title id="vizTitle">Bubble chart of 19 LOL ideas</title>
+        <desc id="vizDesc">Ease of execution on the horizontal axis, value for enterprises on the vertical axis,
+          wow effect for Lovable management as bubble size. Full values are in the table that follows.</desc>
+
+        <!-- quadrant wash: midpoint at 6 / 6 -->
+        <rect x="72" y="32" width="740" height="520" fill="#FDFCFA"></rect>
+        <rect x="483" y="32" width="329" height="260" fill="var(--coral-wash)"></rect>
+
+        <!-- gridlines: solid hairlines, one shade off the surface -->
+        <g stroke="var(--grid)" stroke-width="1">
+          <line x1="72"  y1="32"  x2="72"  y2="552"></line>
+          <line x1="154" y1="32"  x2="154" y2="552"></line>
+          <line x1="236" y1="32"  x2="236" y2="552"></line>
+          <line x1="319" y1="32"  x2="319" y2="552"></line>
+          <line x1="401" y1="32"  x2="401" y2="552"></line>
+          <line x1="565" y1="32"  x2="565" y2="552"></line>
+          <line x1="648" y1="32"  x2="648" y2="552"></line>
+          <line x1="730" y1="32"  x2="730" y2="552"></line>
+          <line x1="812" y1="32"  x2="812" y2="552"></line>
+          <line x1="72" y1="32"  x2="812" y2="32"></line>
+          <line x1="72" y1="97"  x2="812" y2="97"></line>
+          <line x1="72" y1="162" x2="812" y2="162"></line>
+          <line x1="72" y1="227" x2="812" y2="227"></line>
+          <line x1="72" y1="357" x2="812" y2="357"></line>
+          <line x1="72" y1="422" x2="812" y2="422"></line>
+          <line x1="72" y1="487" x2="812" y2="487"></line>
+        </g>
+        <!-- midlines: the quadrant split, one shade stronger -->
+        <g stroke="var(--line-2)" stroke-width="1">
+          <line x1="483" y1="32" x2="483" y2="552"></line>
+          <line x1="72" y1="292" x2="812" y2="292"></line>
+        </g>
+        <!-- axes -->
+        <g stroke="var(--axis)" stroke-width="1">
+          <line x1="72" y1="552" x2="812" y2="552"></line>
+          <line x1="72" y1="32"  x2="72"  y2="552"></line>
+        </g>
+
+        <!-- quadrant labels -->
+        <text class="qlabel" x="800" y="52"  text-anchor="end">Do now</text>
+        <text class="qlabel" x="84"  y="52">Worth the build</text>
+        <text class="qlabel" x="800" y="542" text-anchor="end">Cheap filler</text>
+        <text class="qlabel" x="84"  y="542">Park it</text>
+
+        <!-- x ticks -->
+        <g class="atick" text-anchor="middle">
+          <text x="72"  y="574">1</text><text x="154" y="574">2</text><text x="236" y="574">3</text>
+          <text x="319" y="574">4</text><text x="401" y="574">5</text><text x="483" y="574">6</text>
+          <text x="565" y="574">7</text><text x="648" y="574">8</text><text x="730" y="574">9</text>
+          <text x="812" y="574">10</text>
+        </g>
+        <text class="atitle" x="442" y="602" text-anchor="middle">Ease of execution  →</text>
+        <!-- y ticks -->
+        <g class="atick" text-anchor="end">
+          <text x="60" y="36">10</text><text x="60" y="101">9</text><text x="60" y="166">8</text>
+          <text x="60" y="231">7</text><text x="60" y="296">6</text><text x="60" y="361">5</text>
+          <text x="60" y="426">4</text><text x="60" y="491">3</text><text x="60" y="556">2</text>
+        </g>
+        <text class="atitle" x="0" y="0" transform="translate(22,292) rotate(-90)" text-anchor="middle">Value for enterprises  →</text>
+
+        <g id="bubbles"></g>
+      </svg>
+      <div class="tip" id="tip" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="legends">
+      <div>
+        <div class="lgt">Theme</div>
+        <div class="lg">
+          <span class="lgi"><span class="sw" style="background:var(--s1)"></span><b>Runtime</b> — it works without you</span>
+          <span class="lgi"><span class="sw" style="background:var(--s2)"></span><b>Reach</b> — it touches other systems</span>
+          <span class="lgi"><span class="sw" style="background:var(--s3)"></span><b>Craft</b> — it gets smarter over time</span>
+        </div>
+      </div>
+      <div>
+        <div class="lgt">Wow effect (bubble area)</div>
+        <svg width="220" height="76" aria-hidden="true">
+          <circle cx="16"  cy="38" r="12.7" fill="none" stroke="var(--line-2)" stroke-width="1.5"></circle>
+          <circle cx="72"  cy="38" r="25.5" fill="none" stroke="var(--line-2)" stroke-width="1.5"></circle>
+          <circle cx="150" cy="38" r="35"   fill="none" stroke="var(--line-2)" stroke-width="1.5"></circle>
+          <text x="16"  y="42" text-anchor="middle" class="atick">3</text>
+          <text x="72"  y="42" text-anchor="middle" class="atick">6</text>
+          <text x="150" y="42" text-anchor="middle" class="atick">10</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>The numbers, and the first move</h2>
+    <p class="note">Sorted by build order. <b>Seq</b> is the slot in <b>5 → 2 → 1 → 15 → 6+7 → 3 → 10 → 19</b>;
+      slot 5 holds two ideas done together, and 14 runs in parallel. Sort by any column — Score = 35% ease
+      + 40% enterprise value + 25% wow, all on a 1–10 scale. IDs are frozen labels and track neither order.</p>
+    <div class="tblscroll">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th class="num"><button data-sort="seqOrder">Seq<span class="arw">▼</span></button></th>
+            <th>Day</th>
+            <th class="num"><button data-sort="rank">ID<span class="arw">▼</span></button></th>
+            <th><button data-sort="title">Idea<span class="arw">▼</span></button></th>
+            <th><button data-sort="theme">Theme<span class="arw">▼</span></button></th>
+            <th class="num"><button data-sort="ease">Ease<span class="arw">▼</span></button></th>
+            <th class="num"><button data-sort="ent">Enterprise<span class="arw">▼</span></button></th>
+            <th class="num"><button data-sort="wow">Wow<span class="arw">▼</span></button></th>
+            <th class="num"><button data-sort="score">Score<span class="arw">▼</span></button></th>
+            <th>First move</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="method">
+    <h3>How to read this</h3>
+    <p>All 19 ideas live in the todo store under the <code>LOL:</code> prefix — nothing hand-picked.
+      Scores are judgement calls on a 1–10 scale, shown in full so you can overrule any of them and watch the
+      ranking move.</p>
+    <p><b>Updated 26 July 2026.</b> ID 1 renamed <b>“a webhook per project” → “Event Triggers”</b>, here and in the
+      to-do itself. Reframed: the Edge Function primitive already exists — the value is the guided setup layer
+      (endpoint creation, auth/signatures, event mapping, retries, idempotency, monitoring). Demo path:
+      sensor event → endpoint → database record → realtime dashboard → notification → agent action.
+      That re-scoped it from ease 9 / enterprise 8 (8.35) to <b>ease 6 / enterprise 9 (7.70)</b> — harder to build,
+      worth more to a buyer — which moves it to second behind Scheduled actions on score, and build slot 3.
+      IDs stay frozen so earlier references still resolve.</p>
+    <p><b>ID 19 added</b> — an official <b>Security Automation CLI</b>: a thin, stable client over the existing
+      Security Center API (trigger/await scans, query findings and freshness, severity thresholds, JSON export,
+      deterministic exit codes for CI or cron), explicitly not a separate scanning system. Pitch: “Security Center
+      as code.” Scored ease 4 / enterprise 9 / wow 6 = 6.50 — ease is held down by the one real blocker,
+      <b>scoped service-account authentication</b>. That prerequisite is also required by #2 and adjacent to #1,
+      so it may be worth more than the CLI it blocks.</p>
+    <p><b>ID 5 scope corrected</b> — retitled to <b>“Secret &amp; credential capture guidance”</b>, here and in the
+      to-do. It was rendered too narrowly. The scope is: show the exact secret name, expected format, storage
+      location and live validation <i>at the point of entry</i> — across <b>four</b> surfaces: connector setup,
+      Edge Functions, APIs and BYOK flows. “Fold it into connector onboarding” is rejected; connectors are one
+      surface, not the scope. <b>Scored three times</b> — 9/7/3 (6.70) on the original narrow scope, then
+      7/8/3 (6.40) when I assumed four surfaces meant per-provider work, then <b>9/8/3 (7.10)</b> once that
+      assumption was corrected. The guidance is <b>LLM-driven, not procedural</b>: the model generates the
+      step-by-step walkthrough through the provider's own UI, exactly as Claude Code already does, so there is no
+      lookup table of where each vendor hides its keys and no per-provider scripts to maintain. Provider variance
+      costs nothing, so the surface count stops multiplying the work. #5 moves from eighth to fourth.</p>
+    <p><b>Build order set 26 July.</b> <b>5 → 2 → 1 → 15 → 6+7 → 3 → 10 → 19</b>, with 14 in parallel.
+      Michael's rationale: 5 now (small, user-visible, few dependencies) · 2 before 1 (establish one
+      trigger/scheduling substrate, then add external events) · 15 before 6+7 (define eval, compatibility and
+      trust gates before importing or distributing skills) · 3 after 1+2 (outcome loops need triggers, budgets,
+      retries and stop conditions) · 10 before 19 (connector creation is nearer existing work) · 19 last (waits
+      for scoped API keys/service accounts, not because the idea is weak). Ten to-dos are dated Mon 27 – Fri 31
+      July, with priorities set so same-day items sort in sequence order. The other nine to-dos were dropped —
+      a recoverable status, not a deletion — and all nine ideas remain on this page.</p>
+    <p><b>#4 is worth a second look.</b> Lovable MCP accessible IN Lovable was in the previous prioritised ten
+      and is not in the sequence, despite scoring 6.85 — higher than five of the ten that are scheduled. It is
+      the only idea whose status changed from in to out without being discussed.</p>
+    <p><b>ID 20 added 26 July — “Lovable builds desktop apps”, NOT in the sequence.</b> Checked against the Company
+      Brain first, which splits the question in two: Lovable <i>as</i> a desktop app <b>already shipped</b>
+      (Electron, macOS + Windows, local MCP servers, launched 14 April, release project completed 5 July), while
+      Lovable <i>emitting</i> desktop apps appears <b>nowhere</b> — not roadmapped, not rejected, simply absent.
+      The wrapper is the easy 20%: Lovable emits a standard Vite <code>dist/</code>. The hard 80% is code signing
+      and notarisation (<i>whose</i> certificate signs a user's app?), per-OS build runners, auto-update channels,
+      distribution, and the fact that a desktop app still calling a hosted backend is a browser in a costume.
+      Sharpening: the valuable version is “Lovable builds apps that can talk to localhost”, and one signed bridge
+      helper divides the signing problem by the number of apps where per-app packaging multiplies it.
+      Scored ease 3 / enterprise 7 / wow 9 = 6.10. A proof of concept is LOL-week-sized; a production desktop
+      target is a quarter.</p>
+    <p><b>These are 20 distinct items.</b> Dependencies and sequencing between them are noted where they exist —
+      a dependency is not a merge. No idea here should be folded into another.</p>
+    <ul>
+      <li><b>Ease of execution</b> — how much platform work stands between the idea and a shippable version. 10 = a
+        week and a design review. 1 = a new subsystem plus a security argument.</li>
+      <li><b>Value for enterprises</b> — does this unlock or expand an enterprise deal. Governance, integration into
+        an existing stack, and unattended operation score high; local-machine access scores low, because it is the
+        thing security teams block first.</li>
+      <li><b>Wow effect for Lovable management</b> — how agentic and future-facing the idea reads to the people who
+        set roadmap. Rewards ideas that change what Lovable <i>is</i>, not what it does faster.</li>
+      <li><b>Quadrants</b> split at 6 / 6. “Do now” is high on both. “Worth the build” is the enterprise value you
+        have to pay for. “Park it” is where two ideas honestly sit.</li>
+    </ul>
+    <p style="margin-bottom:0">Colours are the three-slot categorical palette validated for all-pairs colour-vision
+      separation on this cream surface — bubble charts put every hue next to every other, so three is the safe ceiling.</p>
+  </div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ data */
+const IDEAS = [
+ {id:"2511e594", rank:1,  title:"Event Triggers", theme:"Runtime", ease:6, ent:9, wow:8, status:"open", pri:true, seq:"3", day:"Tue 28",
+  move:"Build the demo path end to end with one real sensor: sensor event → endpoint → database record → realtime dashboard → notification → agent action. Design the guided setup from what that build turns out to be annoying about."},
+ {id:"d959277a", rank:2,  title:"Scheduled actions", theme:"Runtime", ease:7, ent:8, wow:9, status:"open", pri:true, seq:"2", day:"Tue 28",
+  move:"Name the three crons your own stack already runs daily. Those are the V1 use cases, pre-validated."},
+ {id:"aa6343d0", rank:3,  title:"The ‘outcome based loop’", theme:"Runtime", ease:3, ent:9, wow:10, status:"open", pri:true, seq:"6", day:"Fri 31",
+  move:"Write it as a one-page strategy note, not a feature ticket. This is a positioning bet — it needs an exec sponsor before an engineer."},
+ {id:"e5f4c6fe", rank:4,  title:"Lovable MCP accessible IN Lovable", theme:"Reach", ease:7, ent:6, wow:8, status:"open",
+  move:"List what the in-editor agent can’t do that the MCP already can. A short list means a fast ship."},
+ {id:"67a9851f", rank:5,  title:"Secret &amp; credential capture guidance", theme:"Reach", ease:9, ent:8, wow:3, status:"open", pri:true, seq:"1", day:"Mon 27",
+  move:"Count the support threads that open with a mis-pasted key — that number sells the fix in one slide. Four surfaces, not one: connector setup, Edge Functions, APIs, BYOK. Build it LLM-driven, not procedural — the model generates the walkthrough through the provider's own UI, so there is no per-provider table to maintain."},
+ {id:"72ce0734", rank:6,  title:"Import skills from Claude Code", theme:"Craft", ease:8, ent:6, wow:6, status:"open", pri:true, seq:"5", day:"Thu 30",
+  move:"SKILL.md is a settled format. Write the parser spec in an afternoon — the frontmatter is the whole contract."},
+ {id:"97d0f6ef", rank:19, title:"Security Automation CLI", theme:"Reach", ease:4, ent:9, wow:6, status:"open", pri:true, seq:"8", day:"Fri 31",
+  move:"Write the --help output before any code — if the command surface doesn't fit on one screen, the scope has drifted from 'thin client' to 'scanning system'. Then find out whether scoped service accounts are on anyone's roadmap; if not, this idea's timeline is that team's timeline."},
+ {id:"7eca285c", rank:7,  title:"Embed skill.md with our Lovable MCP", theme:"Reach", ease:9, ent:5, wow:6, status:"open", pri:true, seq:"5", day:"Thu 30",
+  move:"Paste your best Lovable-building skill into workspace knowledge and measure whether the agent improves. Ship the winner with the MCP."},
+ {id:"1673f4a9", rank:8,  title:"Slack & Discord bridge to projects", theme:"Runtime", ease:5, ent:7, wow:8, status:"open",
+  move:"It’s the webhook plus a bot. Sequence it behind rank 1 and it’s a week, not a quarter."},
+ {id:"f88d9f9c", rank:9,  title:"Project-level skills", theme:"Craft", ease:6, ent:7, wow:6, status:"dropped",
+  move:"Dropped — folded into the skills-setup work. Reopen only if that scopes down."},
+ {id:"772c9fa9", rank:10, title:"A new MCP / integrations creation flow", theme:"Reach", ease:4, ent:8, wow:7, status:"open", pri:true, seq:"7", day:"Fri 31",
+  move:"Time yourself wiring one integration by hand today. Every minute in that recording is the design brief."},
+ {id:"c45bc4be", rank:11, title:"Sparring mode — understand a problem, visualise output", theme:"Craft", ease:6, ent:6, wow:7, status:"open",
+  move:"Prototype it as a workspace skill in Miguelito. No platform change needed to prove the behaviour."},
+ {id:"449fb874", rank:12, title:"Mini brain export / import (à la Karpathy wiki)", theme:"Craft", ease:5, ent:6, wow:8, status:"open",
+  move:"Export one project’s knowledge to a single markdown file by hand. If it re-imports cleanly into a fresh project, the format is proven."},
+ {id:"963bc585", rank:13, title:"Agent window flow", theme:"Runtime", ease:4, ent:6, wow:9, status:"open",
+  move:"Screen-record your Claude Code session beside a Lovable build. The gap between the two is the mock."},
+ {id:"934976ea", rank:14, title:"Make an HTML artifact out of planning (not long markdown)", theme:"Craft", ease:8, ent:5, wow:5, status:"open", pri:true, seq:"par", day:"Mon 27",
+  move:"Mock one. You do this daily already — show plan-as-artifact next to plan-as-markdown and let the contrast argue."},
+ {id:"90bf13e8", rank:15, title:"An improved skills setup (via evals etc.)", theme:"Craft", ease:4, ent:7, wow:7, status:"open", pri:true, seq:"4", day:"Wed 29",
+  move:"Take the three skills you’d actually ship to a customer, write one eval each, score them. That score is the spec for “improved”."},
+ {id:"14948957", rank:16, title:"Skill discovery (from past behaviour)", theme:"Craft", ease:3, ent:6, wow:9, status:"open",
+  move:"Run /skill-discovery over your own logs and screenshot the output. That screenshot is the pitch."},
+ {id:"7e6408a2", rank:17, title:"Talk to my own file system MCP", theme:"Reach", ease:5, ent:3, wow:6, status:"open",
+  move:"Park it. Ask security what a local-file bridge would need before spending any design time."},
+ {id:"lol20cand", rank:20, title:"Lovable builds desktop apps", theme:"Reach", ease:3, ent:7, wow:9, status:"open",
+  move:"Build the demo — a Lovable app in a Tauri shell talking to Ollama on localhost; two closed PRs (#18411, #31207) to crib from. Pair it with a one-page note on the signing question: whose certificate signs a user's app? That decides whether this is ever a product, and it is a decision, not an engineering task."},
+ {id:"407c555e", rank:18, title:"Bridge to local computer MCP (‘computer use’)", theme:"Reach", ease:2, ent:3, wow:8, status:"open",
+  move:"Hold. Revisit after the webhook and scheduled actions land — most of what you want from it, they already give you."}
+];
+
+const THEME_VAR = {Runtime:"--s1", Reach:"--s2", Craft:"--s3"};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COLOR = {Runtime:css("--s1"), Reach:css("--s2"), Craft:css("--s3")};
+
+const W = (d) => 0.35*d.ease + 0.40*d.ent + 0.25*d.wow;
+IDEAS.forEach(d => {
+  d.score = +W(d).toFixed(2);
+  // sortable build order: the parallel prototype sits beside slot 1, unscheduled ideas last
+  d.seqOrder = d.seq === "par" ? 1.5 : (d.seq ? +d.seq : 99);
+});
+
+/* ------------------------------------------------------------- geometry */
+const X0=72, X1=812, Y0=32, Y1=552;
+const sx = v => X0 + (v-1)/9 * (X1-X0);
+const sy = v => Y0 + (10-v)/8 * (Y1-Y0);
+const sr = v => 5 + 30*Math.sqrt(Math.max(v-2.5,0)/7.5);
+
+/* --------------------------------------------------------------- render */
+const gB = document.getElementById("bubbles");
+const NS = "http://www.w3.org/2000/svg";
+
+/* Coincident points: two ideas can score identically on ease AND enterprise value
+   (5 and 2 both sit at 7/8), which would hide the smaller bubble inside the larger.
+   Dodge each member of such a group symmetrically about its true position, so the
+   real coordinate is the group's midpoint. Exact values live in the table. */
+const dodge = {};
+Object.values(IDEAS.reduce((acc,d)=>{
+  (acc[`${d.ease}|${d.ent}`] ||= []).push(d); return acc;
+},{})).filter(g=>g.length>1).forEach(g=>{
+  // lay them out edge to edge, then re-centre on the MEAN OF THE CENTRES — with
+  // unequal radii, centring the span would leave the midpoint off the true point
+  let cursor = 0;
+  g.forEach(d=>{ const rr=sr(d.wow); dodge[d.rank] = cursor + rr; cursor += 2*rr + 4; });
+  const mean = g.reduce((s,d)=>s+dodge[d.rank],0)/g.length;
+  g.forEach(d=>{ dodge[d.rank] -= mean; });
+});
+if (Object.keys(dodge).length) console.log("dodged coincident bubbles:", dodge);
+
+// biggest bubbles first so small ones stay clickable on top
+[...IDEAS].sort((a,b)=>b.wow-a.wow).forEach(d=>{
+  const x=sx(d.ease)+(dodge[d.rank]||0), y=sy(d.ent), r=sr(d.wow), c=COLOR[d.theme];
+  const g=document.createElementNS(NS,"g");
+  g.setAttribute("class","bub"); g.setAttribute("tabindex","0"); g.setAttribute("role","img");
+  g.setAttribute("data-theme",d.theme); g.setAttribute("data-status",d.status); g.setAttribute("data-id",d.id);
+  g.setAttribute("data-pri", d.pri ? "1" : "0");
+  g.setAttribute("aria-label",
+    `ID ${d.rank}. ${d.title}. ${d.theme}. ${d.pri?"Prioritised. ":""}Ease ${d.ease}, enterprise value ${d.ent}, wow ${d.wow}, score ${d.score}.`);
+
+  // 2px surface ring so overlapping bubbles stay separable
+  const ring=document.createElementNS(NS,"circle");
+  ring.setAttribute("class","ring");
+  ring.setAttribute("cx",x); ring.setAttribute("cy",y); ring.setAttribute("r",r+1.5);
+  ring.setAttribute("fill","none"); ring.setAttribute("stroke","#FFFFFF"); ring.setAttribute("stroke-width","3.5");
+  g.appendChild(ring);
+
+  const cir=document.createElementNS(NS,"circle");
+  cir.setAttribute("cx",x); cir.setAttribute("cy",y); cir.setAttribute("r",r);
+  cir.setAttribute("fill",c); cir.setAttribute("fill-opacity", d.status==="dropped" ? "0.06" : "0.17");
+  cir.setAttribute("stroke",c); cir.setAttribute("stroke-width","2");
+  if(d.status==="dropped") cir.setAttribute("stroke-dasharray","4 3");
+  g.appendChild(cir);
+
+  // generous hit target — never smaller than 24px across
+  const hit=document.createElementNS(NS,"circle");
+  hit.setAttribute("cx",x); hit.setAttribute("cy",y); hit.setAttribute("r",Math.max(r,14));
+  hit.setAttribute("fill","transparent");
+  g.appendChild(hit);
+
+  // direct label: the rank, which is the key into the table
+  const t=document.createElementNS(NS,"text");
+  t.setAttribute("class","blab"); t.setAttribute("x",x); t.setAttribute("y",y+4);
+  t.setAttribute("text-anchor","middle");
+  // text wears a text token, never the series colour — the ring carries identity
+  t.setAttribute("fill", d.status==="dropped" ? "#9B9B9B" : "#1A1A1A");
+  t.setAttribute("font-size", r<16 ? "10" : "12");
+  t.textContent=d.rank;
+  g.appendChild(t);
+
+  gB.appendChild(g);
+});
+
+/* -------------------------------------------------------------- tooltip */
+const tip=document.getElementById("tip");
+const box=document.querySelector(".chartbox");
+const byId=Object.fromEntries(IDEAS.map(d=>[d.id,d]));
+
+function showTip(d, evt){
+  const c=COLOR[d.theme];
+  tip.innerHTML =
+    `<div class="tt">${d.rank}. ${d.title}</div>`+
+    (d.pri?`<div style="font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:${c};font-weight:600;margin:-4px 0 8px">`+
+      (d.seq==="par"?"Parallel prototype":`Build slot ${d.seq}`)+` · ${d.day}</div>`:"")+
+    `<div class="tm"><span>Ease <b>${d.ease}</b></span><span>Enterprise <b>${d.ent}</b></span>`+
+    `<span>Wow <b>${d.wow}</b></span><span>Score <b>${d.score.toFixed(2)}</b></span></div>`+
+    `<div class="tf"><span>First move:</span> ${d.move}</div>`;
+  tip.style.borderColor=c;
+  const b=box.getBoundingClientRect();
+  const px = evt ? evt.clientX-b.left : (sx(d.ease)+(dodge[d.rank]||0))/860*b.width;
+  const py = evt ? evt.clientY-b.top  : sy(d.ent)/640*b.height;
+  tip.classList.add("on");
+  const tw=tip.offsetWidth, th=tip.offsetHeight;
+  tip.style.left = Math.max(4, Math.min(px+16, b.width-tw-4)) + "px";
+  tip.style.top  = Math.max(4, py-th-14) + "px";
+}
+const hideTip = () => tip.classList.remove("on");
+
+gB.addEventListener("mousemove", e=>{
+  const g=e.target.closest(".bub"); if(!g) return;
+  showTip(byId[g.dataset.id], e);
+});
+gB.addEventListener("mouseleave", hideTip);
+gB.addEventListener("focusin", e=>{
+  const g=e.target.closest(".bub"); if(!g) return;
+  showTip(byId[g.dataset.id], null);
+});
+gB.addEventListener("focusout", hideTip);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") hideTip(); });
+
+/* --------------------------------------------------------------- table */
+let sortKey="seqOrder", sortDir=1;
+const tbody=document.getElementById("tbody");
+
+function rowsHTML(list){
+  return list.map(d=>{
+    const c=COLOR[d.theme];
+    return `<tr data-theme="${d.theme}" data-status="${d.status}" data-pri="${d.pri?1:0}" class="${d.status==='dropped'?'dropped':''}">
+      <td class="num"><b style="color:${d.pri?'var(--ink)':'var(--ink-3)'}">${d.seq||'—'}</b></td>
+      <td style="white-space:nowrap;color:var(--ink-2);font-size:12.5px">${d.day||'—'}</td>
+      <td class="num"><span class="rk" style="background:${c}">${d.rank}</span></td>
+      <td><span class="idea">${d.title}</span>${d.status==='dropped'?'<span class="drop-tag">dropped</span>':''}</td>
+      <td><span class="th-pill"><span class="dot" style="background:${c}"></span>${d.theme}</span></td>
+      <td class="num">${d.ease}</td>
+      <td class="num">${d.ent}</td>
+      <td class="num">${d.wow}</td>
+      <td class="num score">${d.score.toFixed(2)}</td>
+      <td class="move">${d.move}</td>
+    </tr>`;
+  }).join("");
+}
+function drawTable(){
+  const list=[...IDEAS].sort((a,b)=>{
+    const A=a[sortKey], B=b[sortKey];
+    const v = typeof A==="string" ? A.localeCompare(B) : A-B;
+    // stable tiebreak: within a shared slot, score decides; then ID
+    return v*sortDir || (b.score-a.score) || (a.rank-b.rank);
+  });
+  tbody.innerHTML=rowsHTML(list);
+  applyFilters();
+}
+document.querySelectorAll("th button[data-sort]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const k=btn.dataset.sort;
+    if(k===sortKey){ sortDir*=-1; } else { sortKey=k; sortDir = (k==="rank"||k==="title"||k==="theme"||k==="seqOrder") ? 1 : -1; }
+    document.querySelectorAll("th").forEach(th=>th.removeAttribute("aria-sort"));
+    btn.closest("th").setAttribute("aria-sort", sortDir===1?"ascending":"descending");
+    btn.querySelector(".arw").textContent = sortDir===1 ? "▲" : "▼";
+    drawTable();
+  });
+});
+
+/* -------------------------------------------------------------- filters */
+const active=new Set(["Runtime","Reach","Craft"]);
+let showDropped=true, priOnly=false;
+
+const passes = ds => active.has(ds.theme)
+  && (showDropped || ds.status!=="dropped")
+  && (!priOnly || ds.pri==="1");
+
+function applyFilters(){
+  document.querySelectorAll(".bub").forEach(g=>{
+    const ok = passes(g.dataset);
+    g.classList.toggle("dim", !ok);
+    g.setAttribute("tabindex", ok ? "0" : "-1");
+  });
+  document.querySelectorAll("#tbody tr").forEach(tr=>{
+    tr.classList.toggle("hide", !passes(tr.dataset));
+  });
+}
+document.querySelectorAll("[data-theme-filter]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const t=btn.dataset.themeFilter;
+    if(active.has(t) && active.size>1){ active.delete(t); btn.setAttribute("aria-pressed","false"); }
+    else { active.add(t); btn.setAttribute("aria-pressed","true"); }
+    applyFilters(); hideTip();
+  });
+});
+document.getElementById("priToggle").addEventListener("click",e=>{
+  priOnly=!priOnly;
+  e.currentTarget.setAttribute("aria-pressed", String(priOnly));
+  applyFilters(); hideTip();
+});
+document.getElementById("dropToggle").addEventListener("click",e=>{
+  showDropped=!showDropped;
+  e.currentTarget.setAttribute("aria-pressed", String(showDropped));
+  e.currentTarget.textContent = showDropped ? "Show dropped idea" : "Dropped idea hidden";
+  applyFilters(); hideTip();
+});
+
+drawTable();
+document.querySelector('th button[data-sort="seqOrder"]').closest("th").setAttribute("aria-sort","ascending");
+document.querySelector('th button[data-sort="seqOrder"] .arw').textContent="▲";
+</script>
+</body>
+</html>
