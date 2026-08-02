@@ -3,15 +3,32 @@
  * Uses fetch directly — no SDK dependency.
  */
 
-const SB_URL = process.env.SUPABASE_URL;
-const SB_KEY = process.env.SUPABASE_KEY;
+import { loadDotEnv } from "./env.ts";
 
-function requireEnv(): { url: string; key: string } {
-  if (!SB_URL || !SB_KEY) {
-    console.error("Missing SUPABASE_URL or SUPABASE_KEY environment variables.");
-    process.exit(1);
+/**
+ * Resolve credentials, shell first then the package env file.
+ *
+ * Read LAZILY, not at module load. The previous version captured
+ * `process.env.SUPABASE_URL` into a top-level const, so by the time anything
+ * could have loaded the env file the value was already fixed as undefined —
+ * import order silently decided whether the CLI worked.
+ *
+ * Throws rather than calling process.exit: `cli.ts` already catches and prints
+ * `Error: <message>` before exiting 1, so the failure stays just as loud while
+ * becoming testable. Loud is the property to keep — the 2026-08-02 groom failed
+ * and read nothing, which is strictly better than silently reporting an empty
+ * backlog that looks like a clean one.
+ */
+export function requireEnv(root?: string): { url: string; key: string } {
+  loadDotEnv(root);
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "Missing SUPABASE_URL or SUPABASE_KEY — checked the shell environment and the package env file.",
+    );
   }
-  return { url: SB_URL, key: SB_KEY };
+  return { url, key };
 }
 
 function headers(key: string): Record<string, string> {
