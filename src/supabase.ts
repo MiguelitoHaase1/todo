@@ -157,6 +157,10 @@ export interface Task {
    * guessed badge costs the credibility of the accurate ones.
    */
   task_type: "flash" | "deep" | null;
+  /** Who wrote this row. Agents set 'agent' so the review modal can find their writes (518bd6ee). */
+  created_by: "michael" | "agent" | "todoist";
+  /** null = nothing to review. pending = waiting in the review modal. */
+  review_state: "pending" | "accepted" | "dismissed" | null;
   created_at: string;
   updated_at: string;
 }

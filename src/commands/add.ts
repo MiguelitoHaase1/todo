@@ -14,6 +14,10 @@ export async function cmdAdd(args: string[]): Promise<void> {
   // icon on the kanban card. Set here, at write time, by whoever knows the
   // work; never inferred later from the title. null is the normal answer.
   let taskType: string | null = null;
+  // Provenance + review queue (hypothesis 518bd6ee). Default is Michael's own
+  // write, which needs no review; --agent flips both.
+  let createdBy = "michael";
+  let reviewState: string | null = null;
 
   for (let i = 0; i < filteredArgs.length; i++) {
     const arg = filteredArgs[i];
@@ -32,6 +36,13 @@ export async function cmdAdd(args: string[]): Promise<void> {
         console.error(`Invalid due date: ${dueDate} (use YYYY-MM-DD)`);
         process.exit(1);
       }
+    } else if (arg === "--agent") {
+      // An agent wrote this, not Michael (hypothesis 518bd6ee). Queues the row
+      // in the review modal so the 2026-08-04 "write it, don't propose it" rule
+      // has a control surface: everything an agent adds is visible and
+      // reversible in one gesture, instead of silently landing in the plan.
+      createdBy = "agent";
+      reviewState = "pending";
     } else if (arg === "--type") {
       taskType = filteredArgs[++i];
       if (taskType !== "flash" && taskType !== "deep") {
@@ -50,7 +61,7 @@ export async function cmdAdd(args: string[]): Promise<void> {
   }
 
   if (!title) {
-    console.error('Usage: td add "task title" [-p 0-4] [--due YYYY-MM-DD] [--type flash|deep] [-d "description"]');
+    console.error('Usage: td add "task title" [-p 0-4] [--due YYYY-MM-DD] [--type flash|deep] [--agent] [-d "description"]');
     process.exit(1);
   }
 
@@ -60,6 +71,8 @@ export async function cmdAdd(args: string[]): Promise<void> {
     priority,
     due_date: dueDate,
     task_type: taskType,
+    created_by: createdBy,
+    review_state: reviewState,
     status: "open",
   });
 

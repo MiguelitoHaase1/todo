@@ -13,6 +13,8 @@ import type { Task } from "../supabase.ts";
 function mockTask(overrides?: Partial<Task>): Task {
   return {
     task_type: null,
+    created_by: "michael",
+    review_state: null,
     id: "abc12345-0000-0000-0000-000000000000",
     title: "Original",
     description: "Desc",

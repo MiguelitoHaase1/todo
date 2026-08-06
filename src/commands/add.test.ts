@@ -128,6 +128,28 @@ describe("cmdAdd — duplicate-task regression guard", () => {
     assert.equal(task.task_type, null);
   });
 
+  /**
+   * `--agent` (hypothesis 518bd6ee) — what puts a row in the review modal.
+   *
+   * Since 2026-08-04 agents write unambiguous todos straight to the list rather
+   * than proposing them. This flag is the other half of that bargain: the write
+   * still happens immediately, but it lands somewhere Michael can undo in one
+   * gesture instead of silently joining the plan.
+   */
+  it("marks an agent write as pending review", async () => {
+    await cmdAdd(["send Bernt the pricing one-pager", "-p", "1", "--agent", "--json"]);
+    const task = posts.filter((p) => p.table === "tasks")[0].body as Record<string, unknown>;
+    assert.equal(task.created_by, "agent");
+    assert.equal(task.review_state, "pending");
+  });
+
+  it("leaves Michael's own writes out of the review queue entirely", async () => {
+    await cmdAdd(["book the dentist", "--json"]);
+    const task = posts.filter((p) => p.table === "tasks")[0].body as Record<string, unknown>;
+    assert.equal(task.created_by, "michael");
+    assert.equal(task.review_state, null, "no review_state means nothing to review");
+  });
+
   it("rejects a type the column would reject anyway, before the round trip", async () => {
     const realExit = process.exit;
     const realErr = console.error;

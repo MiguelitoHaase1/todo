@@ -27,6 +27,8 @@ const daysAgo = (n: number): string => {
 
 const mkTask = (overrides: Partial<Task> = {}): Task => ({
   task_type: null,
+  created_by: "michael",
+  review_state: null,
   id: overrides.id ?? "t-1",
   title: overrides.title ?? "Some task",
   description: null,
