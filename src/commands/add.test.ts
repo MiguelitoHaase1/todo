@@ -99,4 +99,55 @@ describe("cmdAdd — duplicate-task regression guard", () => {
     assert.equal(task.title, "buy milk");
     assert.equal(task.priority, 2);
   });
+
+  /**
+   * `--type` (hypothesis 8aa4d287) — the write path for the kanban card icons.
+   *
+   * The column is useless without a writer: if nothing sets it, every card
+   * stays untyped and shows no icon, which is the failure the hypothesis names
+   * as its own kill criterion. So `td add` is where the type gets set, by the
+   * person or agent that knows the work.
+   */
+  it("writes --type onto the row", async () => {
+    await cmdAdd(["reply to Bernt", "-p", "1", "--type", "flash", "--json"]);
+    const task = posts.filter((p) => p.table === "tasks")[0].body as Record<string, unknown>;
+    assert.equal(task.task_type, "flash");
+  });
+
+  it("accepts deep as well as flash", async () => {
+    await cmdAdd(["write the playbook", "--type", "deep", "--json"]);
+    const task = posts.filter((p) => p.table === "tasks")[0].body as Record<string, unknown>;
+    assert.equal(task.task_type, "deep");
+  });
+
+  // Untyped is the common case and must stay clean — the renderer keys "show no
+  // icon" off null, so an empty string or a stray default would break it.
+  it("leaves task_type null when --type is not given", async () => {
+    await cmdAdd(["book the dentist", "--json"]);
+    const task = posts.filter((p) => p.table === "tasks")[0].body as Record<string, unknown>;
+    assert.equal(task.task_type, null);
+  });
+
+  it("rejects a type the column would reject anyway, before the round trip", async () => {
+    const realExit = process.exit;
+    const realErr = console.error;
+    let exited: number | undefined;
+    let msg = "";
+    process.exit = ((code?: number) => {
+      exited = code;
+      throw new Error("exit");
+    }) as never;
+    console.error = (m: string) => { msg += m; };
+    try {
+      await cmdAdd(["something", "--type", "urgent"]);
+    } catch {
+      /* the stubbed exit throws */
+    } finally {
+      process.exit = realExit;
+      console.error = realErr;
+    }
+    assert.equal(exited, 1, "exits non-zero");
+    assert.match(msg, /flash|deep/, "names the values it will accept");
+    assert.equal(posts.filter((p) => p.table === "tasks").length, 0, "nothing was written");
+  });
 });

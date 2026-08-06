@@ -150,6 +150,13 @@ export interface Task {
   source_message_id: string | null;
   /** Times this task has been deferred. Escalates to "drop or promote?" at 2+. */
   deferral_count: number;
+  /**
+   * What kind of work this is (hypothesis 8aa4d287) — drives the flash/deep
+   * icon on the kanban card in the morning brew. Set at write time by whoever
+   * knows the work; `null` is the normal answer and renders no icon, because a
+   * guessed badge costs the credibility of the accurate ones.
+   */
+  task_type: "flash" | "deep" | null;
   created_at: string;
   updated_at: string;
 }
