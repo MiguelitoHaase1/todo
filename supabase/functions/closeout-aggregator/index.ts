@@ -3,12 +3,12 @@
 // migrations 20261010230000_daily_closeouts.sql, 20261011213000_closeout_at_1500.sql).
 //
 // Calls are not collected. Wingman's data lives in its own Lovable Cloud
-// project, reachable only through its MCP with Michael's OAuth session, so
-// there is no server-side route to read it from here. unprocessed_calls stays
-// an empty array until one exists.
+// project, reachable only through its MCP, which needs an OAuth sign-in.
+// Lead Companion holds one server-side; this function has none yet, so
+// unprocessed_calls stays an empty array until it does.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { copenhagenDay, isCloseoutHour } from "./time.ts";
+import { copenhagenDay } from "../_shared/time.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const day = copenhagenDay(new Date());
   // Cron fires at 13:00 and 14:00 UTC; only the 15:xx Copenhagen run counts.
-  if (!body.force && !isCloseoutHour(day)) {
+  if (!body.force && day.hour !== 15) {
     return json({ ok: true, skipped: true, date: day.date, copenhagen_hour: day.hour });
   }
 
