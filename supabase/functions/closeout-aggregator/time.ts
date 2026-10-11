@@ -1,7 +1,7 @@
 // Copenhagen wall-clock helpers. pg_cron on this project (1.6.4) has no
-// timezone argument and runs in UTC, so the job fires at 13:30 and 14:30 UTC
+// timezone argument and runs in UTC, so the job fires at 13:00 and 14:00 UTC
 // and the function only does work in the run where Copenhagen reads 15:xx.
-// That keeps 15:30 local across both sides of daylight saving.
+// That keeps 15:00 local across both sides of daylight saving.
 
 export const TZ = "Europe/Copenhagen";
 
