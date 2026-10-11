@@ -12,6 +12,7 @@ Deno.test("heads-up counts overdue and due today, and says the calendar is missi
   const p = buildPayload({
     date: "2026-10-12",
     yesterday: { date: "2026-10-09", summary: "Completed 4 tasks." },
+    anchorGoal: "Close Carlsberg terms",
     overdue: [task("a", 1, "2026-10-08"), task("b", 2, "2026-10-09"), task("c", 3, "2026-10-10")],
     dueToday: [task("d", 0, "2026-10-12")],
     p0p1: [task("d", 0, "2026-10-12"), task("a", 1, "2026-10-08")],
@@ -24,10 +25,11 @@ Deno.test("heads-up counts overdue and due today, and says the calendar is missi
   assertEquals(p.tasks.overdue.length, 3);
   assertEquals(p.tasks.p0_p1.map((t) => t.id), ["d", "a"]);
   assertEquals(p.yesterday?.date, "2026-10-09");
+  assertEquals(p.anchor_goal, "Close Carlsberg terms");
 });
 
 Deno.test("an empty day says so, and never invents a goal or a schedule", () => {
-  const p = buildPayload({ date: "2026-10-12", yesterday: null, overdue: [], dueToday: [], p0p1: [] });
+  const p = buildPayload({ date: "2026-10-12", yesterday: null, anchorGoal: null, overdue: [], dueToday: [], p0p1: [] });
   assertEquals(p.headsup.at(-1), "Nothing due today.");
   assertEquals(p.anchor_goal, null);
   assertEquals(p.schedule, []);
@@ -35,6 +37,6 @@ Deno.test("an empty day says so, and never invents a goal or a schedule", () => 
 });
 
 Deno.test("one overdue task reads in the singular", () => {
-  const p = buildPayload({ date: "2026-10-12", yesterday: null, overdue: [task("a", 3, "2026-10-10")], dueToday: [], p0p1: [] });
+  const p = buildPayload({ date: "2026-10-12", yesterday: null, anchorGoal: null, overdue: [task("a", 3, "2026-10-10")], dueToday: [], p0p1: [] });
   assertEquals(p.headsup[1], "1 overdue task needs triage.");
 });

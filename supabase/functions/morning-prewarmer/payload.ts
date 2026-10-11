@@ -5,6 +5,7 @@ export type SnapshotTask = { id: string; title: string; priority: number; due_da
 export type SnapshotInput = {
   date: string;
   yesterday: { date: string; summary: string | null } | null;
+  anchorGoal: string | null;
   overdue: SnapshotTask[];
   dueToday: SnapshotTask[];
   p0p1: SnapshotTask[];
@@ -24,8 +25,7 @@ export function buildPayload(input: SnapshotInput) {
 
   return {
     date: input.date,
-    // The recap app plays the goal back in chat and stores nothing, so there is no goal to read.
-    anchor_goal: null,
+    anchor_goal: input.anchorGoal,
     yesterday: input.yesterday,
     calendar_connected: false,
     schedule: [],

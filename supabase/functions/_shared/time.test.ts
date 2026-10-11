@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { copenhagenDay } from "./time.ts";
+import { addDays, copenhagenDay } from "./time.ts";
 
 const hourAt = (iso: string) => copenhagenDay(new Date(iso)).hour;
 
@@ -35,4 +35,10 @@ Deno.test("closeout pair (13:00/14:00 UTC): exactly one run reads 15", () => {
 Deno.test("prewarmer pair (04:30/05:30 UTC): exactly one run reads 6", () => {
   assertEquals([hourAt("2026-07-14T04:30:00Z"), hourAt("2026-07-14T05:30:00Z")], [6, 7]);
   assertEquals([hourAt("2026-12-01T04:30:00Z"), hourAt("2026-12-01T05:30:00Z")], [5, 6]);
+});
+
+Deno.test("addDays crosses month and year ends", () => {
+  assertEquals(addDays("2026-10-12", -3), "2026-10-09");
+  assertEquals(addDays("2026-12-31", 1), "2027-01-01");
+  assertEquals(addDays("2026-03-01", -1), "2026-02-28");
 });

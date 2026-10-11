@@ -2,15 +2,17 @@
 // precomputed at 06:30 so the morning briefing loads in one read. Called by
 // pg_cron (see migration 20261011220000_morning_snapshots.sql).
 //
+// anchor_goal is the newest recap goal set for today, or for a day up to
+// three days back, so Friday's goal still shows on Monday.
+//
 // Not yet included, and why:
 // - Calendar. Calendar Chat reads Google Calendar through Lovable's connector
 //   gateway with keys only that Lovable project holds. This function cannot
 //   use them, so the schedule is empty and the heads-up says so.
 // - CRM matching. It matches meeting attendees, so it waits for the calendar.
-// - Anchor goal. The recap app keeps the goal in chat and stores nothing.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { copenhagenDay } from "../_shared/time.ts";
+import { addDays, copenhagenDay } from "../_shared/time.ts";
 import { buildPayload } from "./payload.ts";
 
 const supabase = createClient(
@@ -40,19 +42,24 @@ Deno.serve(async (req) => {
 
   try {
     const open = () => supabase.from("tasks").select(TASK_FIELDS).eq("status", "open");
-    const [overdueRes, dueTodayRes, p0p1Res, closeoutRes] = await Promise.all([
+    const [overdueRes, dueTodayRes, p0p1Res, closeoutRes, recapRes] = await Promise.all([
       open().lt("due_date", day.date).order("due_date").order("priority"),
       open().eq("due_date", day.date).order("priority"),
       open().lte("priority", 1).order("priority").order("due_date", { nullsFirst: false }).limit(10),
       // The latest closeout before today, so Monday picks up Friday's.
       supabase.from("daily_closeouts").select("date, summary").lt("date", day.date)
         .order("date", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("daily_recaps").select("next_goal")
+        .lte("next_date", day.date).gte("next_date", addDays(day.date, -3)).not("next_goal", "is", null)
+        .order("next_date", { ascending: false }).order("created_at", { ascending: false })
+        .limit(1).maybeSingle(),
     ]);
-    for (const r of [overdueRes, dueTodayRes, p0p1Res, closeoutRes]) if (r.error) throw r.error;
+    for (const r of [overdueRes, dueTodayRes, p0p1Res, closeoutRes, recapRes]) if (r.error) throw r.error;
 
     const payload = buildPayload({
       date: day.date,
       yesterday: closeoutRes.data ?? null,
+      anchorGoal: recapRes.data?.next_goal ?? null,
       overdue: overdueRes.data ?? [],
       dueToday: dueTodayRes.data ?? [],
       p0p1: p0p1Res.data ?? [],
@@ -69,6 +76,7 @@ Deno.serve(async (req) => {
       overdue: payload.tasks.overdue.length,
       due_today: payload.tasks.due_today.length,
       p0_p1: payload.tasks.p0_p1.length,
+      anchor_goal: payload.anchor_goal,
       headsup: payload.headsup,
     });
   } catch (err) {

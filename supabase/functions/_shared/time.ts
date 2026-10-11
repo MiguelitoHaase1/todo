@@ -42,11 +42,16 @@ export function copenhagenDay(now: Date): LocalDay {
       .map((p) => [p.type, p.value]),
   );
   const date = `${parts.year}-${parts.month}-${parts.day}`;
-  const nextDate = new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day + 1)).toISOString().slice(0, 10);
   return {
     date,
     hour: Number(parts.hour),
     dayStartUtc: localMidnightUtc(date),
-    dayEndUtc: localMidnightUtc(nextDate),
+    dayEndUtc: localMidnightUtc(addDays(date, 1)),
   };
+}
+
+// Calendar arithmetic on a YYYY-MM-DD string, free of timezones.
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
