@@ -83,13 +83,45 @@ function truncate(s: string, n = 40): string {
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
+ * Credentials that only mean anything together. A URL from one Supabase project
+ * and a key from another is not a partial configuration — it is a broken one.
+ */
+const PAIRS: readonly (readonly string[])[] = [["SUPABASE_URL", "SUPABASE_KEY"]];
+
+/**
  * Merge `<root>/.env` into process.env without clobbering existing vars.
  * No-op when the file is absent. Safe to call repeatedly.
+ *
+ * One exception to "shell always wins", added 2026-09-10: if the shell exported
+ * only PART of a pair above and the file supplies the whole pair, the file wins
+ * for the whole pair.
+ *
+ * Why: a stray `SUPABASE_URL` for an unrelated project sat in a long-running
+ * session's environment with no matching `SUPABASE_KEY`. The old rule kept that
+ * URL and loaded this package's key next to it, so every request paired one
+ * project's URL with another project's key. Supabase answers that with
+ * `401 Invalid API key … might also be owned by another Supabase project`, which
+ * reads exactly like a rotated credential. `td` and `crm` were both dark for
+ * hours and the 401 was reported upward as "no todos" — the silent-wrong-value
+ * failure this file's parser already goes out of its way to avoid.
+ *
+ * A deliberate override is unaffected: exporting both halves still wins. Nobody
+ * overrides a credential by exporting half of it.
  */
 export function loadDotEnv(root: string = PKG_ROOT): void {
   const path = join(root, ".env");
   if (!existsSync(path)) return;
-  for (const [key, val] of Object.entries(parseDotEnv(readFileSync(path, "utf8")))) {
-    if (process.env[key] === undefined) process.env[key] = val;
+  const fromFile = parseDotEnv(readFileSync(path, "utf8"));
+
+  const forced = new Set<string>();
+  for (const pair of PAIRS) {
+    const fileHasAll = pair.every((k) => fromFile[k] !== undefined);
+    const shellHasSome = pair.some((k) => process.env[k] !== undefined);
+    const shellHasAll = pair.every((k) => process.env[k] !== undefined);
+    if (fileHasAll && shellHasSome && !shellHasAll) pair.forEach((k) => forced.add(k));
+  }
+
+  for (const [key, val] of Object.entries(fromFile)) {
+    if (forced.has(key) || process.env[key] === undefined) process.env[key] = val;
   }
 }

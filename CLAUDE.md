@@ -79,6 +79,14 @@ npm test          # Run tests
 npm run typecheck # Type check
 ```
 
+**`npm test` writes to Michael's LIVE task list.** `src/cli.test.ts` calls the real `td` against
+the production Supabase. Most cases clean up after themselves. The `add: completes in under 5
+seconds` case (`td add "Latency test" -p 4`, line 84) does not, so every run leaves one undated P4
+"Latency test" task behind. Eight are sitting in the list now (four from 2026-08-06, four from
+2026-09-10). The Sunday groom has put the same eight in front of Michael on 09-13, 09-20, 09-27 and
+10-04. Until that test cleans up after itself, don't run `npm test` casually. If you do run it, mark the
+"Latency test" rows done afterwards.
+
 ## Task Management — Discord Channel Routing
 
 This repo's scope is the `/todo` skill and the `td` CLI. The Discord channels routed here are:

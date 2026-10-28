@@ -10,7 +10,7 @@
     "td": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts",
     "build": "tsc"
   },
   "dependencies": {},

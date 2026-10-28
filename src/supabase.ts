@@ -72,6 +72,43 @@ export async function sbSelect<T>(
   return res.json();
 }
 
+/**
+ * Every row of a table, paged.
+ *
+ * `sbSelect` issues one unbounded request, and PostgREST answers an unbounded
+ * request with at most `db-max-rows` (1000 on Supabase) — no error, no flag, just
+ * a short array. That is fine for a filtered lookup and wrong for anything that
+ * scans the whole table client-side.
+ *
+ * It bit `resolveTask` on 2026-09-10: the tasks table had grown to 1282 rows, so
+ * every task created after row 1000 was invisible to `td done <prefix>` and
+ * `td show <prefix>` while `td list` displayed it happily. Paging is the fix
+ * because the cap is a server setting we do not control and will cross again.
+ */
+export async function sbSelectAll<T>(
+  table: string,
+  query = "",
+  orderBy?: string,
+  pageSize = 1000,
+): Promise<T[]> {
+  const { url, key } = requireEnv();
+  const order = orderBy ? `&order=${orderBy}` : "";
+  const qs = query ? `&${query}` : "";
+  const out: T[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const res = await fetch(`${url}/rest/v1/${table}?select=*${qs}${order}`, {
+      headers: { ...headers(key), Range: `${offset}-${offset + pageSize - 1}` },
+    });
+    if (!res.ok) throw await sanitizedError("GET", table, res);
+    const page = (await res.json()) as T[];
+    out.push(...page);
+    // A short page means the end. Guard the equal-length case too, or a table
+    // that is an exact multiple of pageSize would loop one request too long.
+    if (page.length < pageSize) return out;
+  }
+}
+
 export async function sbInsert<T>(
   table: string,
   data: Record<string, unknown>,
@@ -222,8 +259,10 @@ export async function resolveTask(idPrefix: string): Promise<Task> {
     return tasks[0];
   }
 
-  // PostgREST can't pattern-match on UUID columns, so filter client-side
-  const all = await sbSelect<Task>("tasks");
+  // PostgREST can't pattern-match on UUID columns, so filter client-side.
+  // sbSelectAll, not sbSelect: one page stops at 1000 rows and hides every task
+  // created after that (see sbSelectAll).
+  const all = await sbSelectAll<Task>("tasks");
   const matches = all.filter((t) => t.id.startsWith(idPrefix));
 
   if (matches.length === 0) {
@@ -258,7 +297,7 @@ export async function resolveTaskOrThrow(idPrefix: string): Promise<Task> {
     return tasks[0];
   }
 
-  const all = await sbSelect<Task>("tasks");
+  const all = await sbSelectAll<Task>("tasks");
   const matches = all.filter((t) => t.id.startsWith(idPrefix));
 
   if (matches.length === 0) {

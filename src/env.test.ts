@@ -106,6 +106,46 @@ describe("loadDotEnv", () => {
     }
   });
 
+  it("takes the whole pair from the file when the shell exported only half of it", () => {
+    // 2026-09-10: a stray SUPABASE_URL pointing at an unrelated Supabase project
+    // sat in a long-running session's environment. SUPABASE_KEY was not exported,
+    // so the rule above kept the stray URL and loaded the file's key beside it.
+    // Every request then paired one project's URL with another project's key and
+    // came back `401 Invalid API key … might also be owned by another Supabase
+    // project` — which reads exactly like a rotated credential and is not one.
+    // `td` and `crm` were both dark for hours and the 401 was reported upward as
+    // "no todos".
+    //
+    // Half an override is never deliberate. Someone overriding a credential
+    // exports the whole thing.
+    const root = fixtureRoot("SUPABASE_URL=https://file.supabase.co\nSUPABASE_KEY=file-key\n");
+    try {
+      process.env.SUPABASE_URL = "https://stray.supabase.co";
+      loadDotEnv(root);
+      assert.equal(
+        process.env.SUPABASE_URL,
+        "https://file.supabase.co",
+        "a half-exported pair must not poison the file's matching pair",
+      );
+      assert.equal(process.env.SUPABASE_KEY, "file-key");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("still lets the shell win when it exports the complete pair", () => {
+    const root = fixtureRoot("SUPABASE_URL=https://file.supabase.co\nSUPABASE_KEY=file-key\n");
+    try {
+      process.env.SUPABASE_URL = "https://shell.supabase.co";
+      process.env.SUPABASE_KEY = "shell-key";
+      loadDotEnv(root);
+      assert.equal(process.env.SUPABASE_URL, "https://shell.supabase.co");
+      assert.equal(process.env.SUPABASE_KEY, "shell-key", "a whole override is still an override");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("is a no-op when the file is absent, and safe to call twice", () => {
     const empty = mkdtempSync(join(tmpdir(), "td-env-none-"));
     try {
