@@ -68,3 +68,40 @@ describe("CLI computeEditUpdates", () => {
     assert.equal(events.length, 4);
   });
 });
+
+describe("computeEditUpdates — notes append to the description", () => {
+  it("appends a dated note under the existing description", () => {
+    const { updates, events } = computeEditUpdates(
+      mockTask({ description: "Original description" }),
+      { notes: "Called, waiting on signature" },
+      "2026-10-28",
+    );
+    assert.deepStrictEqual(updates, {
+      description: "Original description\n\nNote 2026-10-28: Called, waiting on signature",
+    });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_type, "description_changed");
+    assert.equal(events[0].previous_value, "Original description");
+  });
+
+  it("starts the description with the note when it was empty", () => {
+    const { updates } = computeEditUpdates(mockTask({ description: null }), { notes: "First" }, "2026-10-28");
+    assert.deepStrictEqual(updates, { description: "Note 2026-10-28: First" });
+  });
+
+  it("applies a new description first, then appends the note", () => {
+    const { updates, events } = computeEditUpdates(
+      mockTask(),
+      { description: "Fresh", notes: "Also this" },
+      "2026-10-28",
+    );
+    assert.deepStrictEqual(updates, { description: "Fresh\n\nNote 2026-10-28: Also this" });
+    assert.equal(events.length, 1, "one description_changed event, not two");
+  });
+
+  it("ignores a blank note", () => {
+    const { updates, events } = computeEditUpdates(mockTask(), { notes: "   " }, "2026-10-28");
+    assert.deepStrictEqual(updates, {});
+    assert.deepStrictEqual(events, []);
+  });
+});

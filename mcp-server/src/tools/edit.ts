@@ -41,6 +41,11 @@ const InputSchema = {
     .union([IsoDateSchema, z.literal("")])
     .optional()
     .describe("New due date YYYY-MM-DD, or empty string to clear."),
+  notes: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe("A note to append to the description as a dated line. Keeps what is already there."),
 };
 
 /** The patch we PATCH to Supabase — only fields that actually changed appear. */
@@ -60,6 +65,8 @@ export interface EditArgs {
   description?: string;
   priority?: number;
   due_date?: string;
+  /** Appended to the description as a dated line. Blank is ignored. */
+  notes?: string;
 }
 
 /**
@@ -72,6 +79,7 @@ export interface EditArgs {
  *   - description: empty string clears (sets null); any other string replaces
  *   - priority: number replaces; same value = no-op
  *   - due_date: empty string clears (sets null); ISO date replaces
+ *   - notes: appended to the (new) description as `Note YYYY-MM-DD: …`
  *
  * Same-value writes (e.g. passing the current title) are NOT emitted as
  * events — an event implies a real state change.
@@ -79,6 +87,7 @@ export interface EditArgs {
 export function computeEditUpdates(
   task: Task,
   args: EditArgs,
+  today: string = new Date().toISOString().slice(0, 10),
 ): { updates: EditUpdates; events: EditEvent[] } {
   const updates: EditUpdates = {};
   const events: EditEvent[] = [];
@@ -92,8 +101,14 @@ export function computeEditUpdates(
     });
   }
 
-  if (args.description !== undefined) {
-    const next = args.description === "" ? null : args.description;
+  let next = task.description ?? null;
+  if (args.description !== undefined) next = args.description === "" ? null : args.description;
+  const note = args.notes?.trim();
+  if (note) {
+    const line = `Note ${today}: ${note}`;
+    next = next ? `${next}\n\n${line}` : line;
+  }
+  if (args.description !== undefined || note) {
     if (next !== task.description) {
       updates.description = next;
       events.push({
@@ -128,19 +143,28 @@ export function computeEditUpdates(
   return { updates, events };
 }
 
+/**
+ * Registered twice: `td_update` is the name voice Claude reaches for when it
+ * wants to reschedule or reprioritise, `td_edit` stays for existing callers.
+ */
 export function registerEditTool(server: McpServer): void {
+  for (const name of ["td_update", "td_edit"]) registerUnder(server, name);
+}
+
+function registerUnder(server: McpServer, name: string): void {
   server.registerTool(
-    "td_edit",
+    name,
     {
-      title: "Edit a todolist task",
+      title: "Update a todolist task",
       description:
-        `Update an existing task in place. Mirrors the CLI's \`td edit\`.\n\n` +
+        `Update an existing task in place: reschedule, reprioritise, rename, or add a note. Mirrors the CLI's \`td update\`.\n\n` +
         `Args:\n` +
         `  - id (required): task UUID or unique short prefix\n` +
         `  - title (optional string): new title\n` +
         `  - description (optional string): new description, or empty string to clear\n` +
         `  - priority (optional 0-4): new priority\n` +
-        `  - due_date (optional YYYY-MM-DD or empty string): new due date, or empty string to clear\n\n` +
+        `  - due_date (optional YYYY-MM-DD or empty string): new due date, or empty string to clear\n` +
+        `  - notes (optional string): appended to the description as a dated line\n\n` +
         `Undefined fields are left unchanged. One task_events row is emitted per changed field.\n\n` +
         `Returns: the updated Task.`,
       inputSchema: InputSchema,
@@ -158,6 +182,7 @@ export function registerEditTool(server: McpServer): void {
         description: args.description,
         priority: args.priority,
         due_date: args.due_date,
+        notes: args.notes,
       });
 
       if (events.length === 0) {

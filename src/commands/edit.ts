@@ -3,8 +3,10 @@
  *
  * Usage:
  *   td edit <id> [--title "new title"] [-d|--description "new desc"]
- *               [-p|--priority 0-4] [--due YYYY-MM-DD]
+ *               [-p|--priority 0-4] [--due YYYY-MM-DD] [--notes "text"]
+ *   td update is the same command.
  *
+ *   - --notes appends a dated line to the description and keeps what is there.
  *   - Passing an empty string to --description or --due clears the field.
  *   - Fields not provided are left unchanged.
  *   - One task_events row is emitted per changed field.
@@ -19,6 +21,7 @@ interface ParsedArgs {
   description?: string;
   priority?: number;
   dueDate?: string;
+  notes?: string;
   jsonMode: boolean;
 }
 
@@ -50,6 +53,8 @@ function parseArgs(args: string[]): ParsedArgs {
         process.exit(1);
       }
       out.dueDate = val;
+    } else if (arg === "--notes") {
+      out.notes = filtered[++i] ?? "";
     } else if (!arg.startsWith("-") && !out.id) {
       out.id = arg;
     }
@@ -66,7 +71,9 @@ export function computeEditUpdates(
     description?: string;
     priority?: number;
     due_date?: string;
+    notes?: string;
   },
+  today: string = new Date().toISOString().slice(0, 10),
 ): {
   updates: Record<string, unknown>;
   events: Array<Omit<TaskEvent, "task_id" | "source">>;
@@ -83,8 +90,14 @@ export function computeEditUpdates(
     });
   }
 
-  if (args.description !== undefined) {
-    const next = args.description === "" ? null : args.description;
+  let next = task.description ?? null;
+  if (args.description !== undefined) next = args.description === "" ? null : args.description;
+  const note = args.notes?.trim();
+  if (note) {
+    const line = `Note ${today}: ${note}`;
+    next = next ? `${next}\n\n${line}` : line;
+  }
+  if (args.description !== undefined || note) {
     if (next !== task.description) {
       updates.description = next;
       events.push({
@@ -124,7 +137,7 @@ export async function cmdEdit(args: string[]): Promise<void> {
 
   if (!parsed.id) {
     console.error(
-      'Usage: td edit <id> [--title "new"] [-d "desc" | -d ""] [-p 0-4] [--due YYYY-MM-DD | --due ""]',
+      'Usage: td edit <id> [--title "new"] [-d "desc" | -d ""] [-p 0-4] [--due YYYY-MM-DD | --due ""] [--notes "text"]',
     );
     process.exit(1);
   }
@@ -135,6 +148,7 @@ export async function cmdEdit(args: string[]): Promise<void> {
     description: parsed.description,
     priority: parsed.priority,
     due_date: parsed.dueDate,
+    notes: parsed.notes,
   });
 
   if (events.length === 0) {

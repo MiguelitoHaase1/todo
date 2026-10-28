@@ -23,6 +23,7 @@ const SHARED_DIR = join(MCP_ROOT, "src/_shared");
 // Manifest: source path (relative to repo root) → target filename in _shared/
 const MANIFEST = [
   { src: "src/supabase.ts",         dest: "supabase.ts" },
+  { src: "src/env.ts",              dest: "env.ts" },
   { src: "src/format.ts",           dest: "format.ts" },
   { src: "src/deferral.ts",         dest: "deferral.ts" },
   { src: "src/batch.ts",            dest: "batch.ts" },

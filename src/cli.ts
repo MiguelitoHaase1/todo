@@ -26,7 +26,7 @@ Commands:
   td add "title" [-p 0-4] [--due YYYY-MM-DD]   Create a task
   td list [--today] [--due DATE] [--status ...]   List tasks
   td done <id>                                   Mark task complete
-  td edit <id> [--title ...] [-d ...] [-p 0-4] [--due DATE]   Update a task
+  td edit <id> [--title ...] [-d ...] [-p 0-4] [--due DATE] [--notes ...]   Update a task (alias: update)
   td show <id>                                   Show task details
   td triage                                      Surface tasks to triage
   td triage exec "drop 1, defer 2"               Execute a triage reply
@@ -63,6 +63,7 @@ async function main() {
       await cmdDone(rest);
       break;
     case "edit":
+    case "update":
       await cmdEdit(rest);
       break;
     case "show":

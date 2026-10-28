@@ -15,6 +15,9 @@ import type { Task } from "../_shared/supabase.ts";
 
 function mockTask(overrides?: Partial<Task>): Task {
   return {
+    task_type: null,
+    created_by: "michael",
+    review_state: null,
     id: "abc12345-0000-0000-0000-000000000000",
     title: "Original title",
     description: "Original description",
@@ -158,5 +161,42 @@ describe("computeEditUpdates — multi-field updates", () => {
     assert.equal(events.length, 2);
     assert.equal(events[0].event_type, "description_changed");
     assert.equal(events[1].event_type, "priority_changed");
+  });
+});
+
+describe("computeEditUpdates — notes append to the description", () => {
+  it("appends a dated note under the existing description", () => {
+    const { updates, events } = computeEditUpdates(
+      mockTask({ description: "Original description" }),
+      { notes: "Called, waiting on signature" },
+      "2026-10-28",
+    );
+    assert.deepStrictEqual(updates, {
+      description: "Original description\n\nNote 2026-10-28: Called, waiting on signature",
+    });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_type, "description_changed");
+    assert.equal(events[0].previous_value, "Original description");
+  });
+
+  it("starts the description with the note when it was empty", () => {
+    const { updates } = computeEditUpdates(mockTask({ description: null }), { notes: "First" }, "2026-10-28");
+    assert.deepStrictEqual(updates, { description: "Note 2026-10-28: First" });
+  });
+
+  it("applies a new description first, then appends the note", () => {
+    const { updates, events } = computeEditUpdates(
+      mockTask(),
+      { description: "Fresh", notes: "Also this" },
+      "2026-10-28",
+    );
+    assert.deepStrictEqual(updates, { description: "Fresh\n\nNote 2026-10-28: Also this" });
+    assert.equal(events.length, 1, "one description_changed event, not two");
+  });
+
+  it("ignores a blank note", () => {
+    const { updates, events } = computeEditUpdates(mockTask(), { notes: "   " }, "2026-10-28");
+    assert.deepStrictEqual(updates, {});
+    assert.deepStrictEqual(events, []);
   });
 });
