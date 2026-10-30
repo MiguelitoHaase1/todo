@@ -9,6 +9,8 @@ function mockTask(overrides?: Partial<Task>): Task {
     task_type: null,
     created_by: "michael",
     review_state: null,
+    snoozed_until: null,
+    is_next: false,
     id: "abc12345-0000-0000-0000-000000000000",
     title: "Test task",
     priority: 3,

@@ -29,6 +29,8 @@ const mkTask = (overrides: Partial<Task> = {}): Task => ({
   task_type: null,
   created_by: "michael",
   review_state: null,
+  snoozed_until: null,
+  is_next: false,
   id: overrides.id ?? "t-1",
   title: overrides.title ?? "Some task",
   description: null,

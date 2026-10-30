@@ -198,6 +198,10 @@ export interface Task {
   created_by: "michael" | "agent" | "todoist";
   /** null = nothing to review. pending = waiting in the review modal. */
   review_state: "pending" | "accepted" | "dismissed" | null;
+  /** Kanban snooze: the card greys out until this instant (e63cae98). */
+  snoozed_until: string | null;
+  /** Kanban next: true on at most one task, enforced by a unique index (3930fe40). */
+  is_next: boolean;
   created_at: string;
   updated_at: string;
 }
