@@ -10,12 +10,23 @@ claude.ai, Claude Code, or a Lovable connector. The data lives in Supabase, the 
 |---|---|
 | **MCP URL** | `https://todolist-mcp-server.vercel.app/api/mcp` |
 | **Transport** | Streamable HTTP, `POST` only, stateless (no session id) |
-| **Auth** | OAuth 2.1 with PKCE and dynamic client registration |
+| **Auth** | A fixed API key as `Authorization: Bearer <key>`, or OAuth 2.1 with PKCE and dynamic client registration |
 | **Scope** | `mcp` |
 
 The bare `/mcp` path returns 404. Use `/api/mcp`.
 
-### How sign-in works
+### The fixed API key
+
+The simplest way in. Send `Authorization: Bearer <key>` on every request. The key is the
+`MCP_API_KEY` env var on Vercel (production). The local copy is in `~/.config/todolist-mcp/api-key`,
+mode 600, never in git. A key shorter than 32 characters is ignored. Use it for clients with no
+OAuth flow: a Lovable "Bearer token" connector, or an app backend.
+
+To rotate it, write a new key to that file, run `vercel env rm MCP_API_KEY production`, then
+`vercel env add MCP_API_KEY production < ~/.config/todolist-mcp/api-key`, and redeploy. Every
+client using the old key stops working at once.
+
+### How OAuth sign-in works
 
 1. The client calls `/api/mcp` without a token and gets `401` with a `WWW-Authenticate` header.
    That header points at `/.well-known/oauth-protected-resource`.

@@ -6,7 +6,9 @@ custom connectors and Claude Code alike.
 
 **Live URL**: https://todolist-mcp-server.vercel.app
 
-## Tools (10)
+## Tools
+
+12 tools, 13 names. Full reference with every argument: `MCP.md`. Brief for the Lovable agent: `LOVABLE.md`.
 
 | Tool | Type | Purpose |
 |---|---|---|
@@ -51,6 +53,7 @@ log can distinguish Claude-driven actions from CLI-driven ones.
 | `SUPABASE_KEY` | Supabase service key (same as the CLI) |
 | `JWT_SIGNING_KEY` | 256-bit HS256 secret (`openssl rand -base64 32`) |
 | `OAUTH_CONSENT_PASSWORD` | Passphrase typed into the consent screen |
+| `MCP_API_KEY` | Optional fixed Bearer key, 32+ chars. Lets clients skip OAuth. Local copy: `~/.config/todolist-mcp/api-key` |
 | `PUBLIC_URL` | Canonical public URL, no trailing slash |
 
 Local: keep these in `mcp-server/.env.local` (gitignored). Vercel: set per

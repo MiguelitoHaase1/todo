@@ -8,13 +8,13 @@ tasks while we work together. Read this whole brief before you call any tool.
 - **Server name:** Todo
 - **URL:** `https://todolist-mcp-server.vercel.app/api/mcp`
 - **Transport:** Streamable HTTP, `POST` only, no sessions.
-- **Auth:** OAuth 2.1 with PKCE and dynamic client registration. The consent page asks for a
-  passphrase that only I have. It's a single-user server: every task in it is mine.
+- **Auth:** a fixed API key sent as `Authorization: Bearer <key>`. OAuth also works, but the key is
+  simpler. It's a single-user server: every task in it is mine.
 
 ## 2. How you get access
 
 **You can't connect it yourself, and you don't need to.** I add it as a custom MCP chat connector in
-Connectors (Add custom → MCP server → OAuth) and sign in there. Once it's connected, the `td_*`
+Connectors (Add custom → MCP server → Bearer token) and paste the key there. Once it's connected, the `td_*`
 tools below show up for you in chat.
 
 If you can't see any `td_*` tools, stop and tell me. Don't build a workaround.
@@ -109,8 +109,8 @@ Accept: application/json, text/event-stream
 The answer is JSON. The tool's output is in `result.structuredContent` as an object, and again in
 `result.content[0].text` as a JSON string.
 
-- Keep `TODO_MCP_KEY` in the project's secrets. Never send it to the browser.
+- `TODO_MCP_KEY` is the same key I use for the connector. Ask me to add it as a project secret.
+  Never put it in code, and never send it to the browser.
 - The browser calls your edge function. The edge function calls the MCP.
-- **If `TODO_MCP_KEY` doesn't exist yet, stop and ask me.** Today the server only accepts short-lived
-  OAuth tokens, and a backend can't sign in on its own. Don't build an OAuth flow or a token
-  refresher to get around that.
+- **If `TODO_MCP_KEY` isn't in the secrets yet, stop and ask me.** Don't build an OAuth flow or a
+  token refresher to get around it.

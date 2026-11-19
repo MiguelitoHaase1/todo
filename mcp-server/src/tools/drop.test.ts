@@ -25,6 +25,8 @@ function mockTask(overrides?: Partial<Task>): Task {
     todoist_id: null,
     source_message_id: null,
     deferral_count: 0,
+    snoozed_until: null,
+    is_next: false,
     created_at: "2026-04-20T00:00:00Z",
     updated_at: "2026-04-20T00:00:00Z",
     ...overrides,
